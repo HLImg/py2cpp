@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <all_path>
+  <abs_path_input>1-PAN.TIF</abs_path_input>
+  <abs_path_input_PAN>data/09PAN.tiff</abs_path_input_PAN>
+  <abs_path_output>outputs/whole</abs_path_output>
+  <log_save_path>log</log_save_path>
+  </all_path>
+  <cut_size>
+    <cut_size_height>1000</cut_size_height>
+    <cut_size_width>1000</cut_size_width>
+  </cut_size>
+  <mode>
+  <mode_path>model_zoo/usrnet_tiny.pth</mode_path>
+  <mode_scale>2</mode_scale>
+    <noise_level_model>0.0075</noise_level_model>
+    <kernel_width_default_c_1>0.6</kernel_width_default_c_1>
+    <kernel_width_default_c_2>0.7</kernel_width_default_c_2>
+    <kernel_width_default_c_3>1.7</kernel_width_default_c_3>
+    <kernel_width_default_c_4>3</kernel_width_default_c_4>
+    <fspecial_filter_type>gaussian</fspecial_filter_type>
+    <fspecial_filter_hsize>9</fspecial_filter_hsize>
+    <boarder_handling>8</boarder_handling>
+
+  </mode>
+
+</catalog>
