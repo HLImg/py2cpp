@@ -11,6 +11,8 @@ import numpy as np
 import python.utils.utils_sisr as util_sr
 import python.utils.utils_image as util_img
 import python.utils.utils_deblur as util_deblur
+
+from scipy.io import savemat
 from python.model.network_usrnet_v1 import USRNet as net
 
 class Model:
@@ -44,17 +46,18 @@ class Model:
         
         print("end initialize [inference model]")
         
-    def inference(self, img_lq):
+    def inference(self, img_lq, i):
         print("[DEBUG] start inference, the shape is ", img_lq.shape)
+        savemat(f"test/test_{i}.mat", {"data": img_lq})
         self.model.eval()
         # previous works
         xmin_lq, xmax_lq = img_lq.min(), img_lq.max()
         img_lq = np.float32(img_lq / xmax_lq)
         w, h = img_lq.shape[:2]
-        img_lq = cv2.resize(img_lq, (self.scale * h, self.scale * w), interpolation=cv2.INTER_NEAREST) 
-        img_lq = util_deblur.wrap_boundary_liu(img_lq, [int(np.ceil(self.scale * w / self.boarder + 2) * self.boarder),
+        img = cv2.resize(img_lq, (self.scale * h, self.scale * w), interpolation=cv2.INTER_NEAREST) 
+        img = util_deblur.wrap_boundary_liu(img, [int(np.ceil(self.scale * w / self.boarder + 2) * self.boarder),
                                                  int(np.ceil(self.scale * h / self.boarder + 2) * self.boarder)])
-        img_wrap= util_sr.downsample_np(img_lq, self.scale, center=False)
+        img_wrap= util_sr.downsample_np(img, self.scale, center=False)
         img_wrap[:w, :h] = img_lq
         img_lq = np.float32(img_wrap)
         img_lq  = cv2.cvtColor(img_lq , cv2.COLOR_GRAY2RGB)

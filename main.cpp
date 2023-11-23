@@ -53,23 +53,27 @@ cv::Mat to_mat_float(const py::array_t<T>& img){
     return mat ;
 }
 
-py::array_t<float> mat_to_array(cv::Mat& mat) {
-    // 获取图像的维度
-    std::vector<ptrdiff_t> shape = { mat.rows, mat.cols, mat.channels() };
-
-    // 如果是单通道图像，移除channels维度
-    if (mat.channels() == 1) {
-        shape.pop_back();
+template <typename T>
+py::array_t<T> to_py_arr(const cv::Mat& img) {
+    if (img.channels() == 1) {
+        py::array_t<T> py_arr = py::array_t<T>({img.rows, img.cols});
+        memcpy(py_arr.request().ptr, img.ptr(),
+               sizeof(T) * img.total());
+        return py_arr;
+    } else {
+        py::array_t<T> py_arr =
+                py::array_t<T>({img.rows, img.cols, img.channels()});
+        memcpy(py_arr.request().ptr, img.ptr(),
+               sizeof(T) * img.total());
+        return py_arr;
     }
-
-    // 获取图像的步长
-    std::vector<ptrdiff_t> strides = { mat.step[0], mat.step[1], sizeof(float) };
-
-    return py::array_t<float>(shape, strides, mat.ptr<float>(), py::cast(mat));
 }
 
-
 int main(int argc, char *argv[]){
+
+    // setting cuda device
+    setenv("CUDA_VISIBLE_DEVICES", "-1", 1);
+
     std::string inp_xml = "./input.xml" ;
     std::string sr_xml = "./super_option.xml" ;
 
@@ -139,7 +143,8 @@ int main(int argc, char *argv[]){
 
         for (int iii = 0 ; iii < num_band; iii++){
             std::cout << "start band  " << iii + 1 << std::endl ; 
-            cv::Mat cur_img = cv::Mat::zeros(mat_hwc.rows, mat_hwc.cols, CV_16UC4);
+            cv::Mat cur_img = cv::Mat::zeros(mat_hwc.rows, mat_hwc.cols, CV_16UC1);
+
             // cv::Mat cur_img(mat_hwc.rows, mat_hwc.cols, CV_16UC1);
             int from_to[] = { iii, 0 };
             cv::mixChannels(&mat_hwc , 1, &cur_img, 1, from_to, 1); 
@@ -179,6 +184,7 @@ int main(int argc, char *argv[]){
                     cv::Mat crop_img = cur_img(roi) ;
                     i = i + 1 ;
                     smalldata_tensor[i] = crop_img.clone();
+                    std::cout << "[debug]  channel " << cur_img.channels() <<std::endl;
                     
 
                     if (w == max_widnum - 1 && width - max_widnum * oriwidth > 0){
@@ -250,15 +256,14 @@ int main(int argc, char *argv[]){
                                                 overlap_rightedge * sr_scale) ;\
 
             for (size_t i = 0; i < dic_len ; i++){
-                if (i % 10 == 0)
-                    std::cout << "finished: [" << i << "]/[" << dic_len <<"]"<< std::endl ;
-                    auto tmp = mat_to_array(smalldata_tensor[i + 1]) ;
-                    std::cout << typeid(tmp).name() << std::endl;
-                    std::cout << "[debug ] " << std::endl ;
-                    auto img_e = py_model.attr("inference")(tmp).cast<py::array_t<float>>();
-                    auto shape = img_e.shape() ;
-                    std::cout << "the shape of img_e is " << shape[0] << ", " << shape[1] << std::endl ;
+                // if (i % 10 == 0)
+                //     std::cout << "finished: [" << i << "]/[" << dic_len <<"]"<< std::endl ;
 
+                std::cout << "finished: [" << i << "]/[" << dic_len <<"]"<< std::endl ;
+                auto tmp = to_py_arr<float>(smalldata_tensor[i + 1]) ;
+                auto img_e = py_model.attr("inference")(tmp, i).cast<py::array_t<float>>();
+                auto shape = img_e.shape() ;
+                std::cout << "the shape of img_e is " << shape[0] << ", " << shape[1] << std::endl ;
             }
         }
     }
