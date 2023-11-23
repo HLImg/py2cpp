@@ -53,6 +53,21 @@ cv::Mat to_mat_float(const py::array_t<T>& img){
     return mat ;
 }
 
+py::array_t<float> mat_to_array(cv::Mat& mat) {
+    // 获取图像的维度
+    std::vector<ptrdiff_t> shape = { mat.rows, mat.cols, mat.channels() };
+
+    // 如果是单通道图像，移除channels维度
+    if (mat.channels() == 1) {
+        shape.pop_back();
+    }
+
+    // 获取图像的步长
+    std::vector<ptrdiff_t> strides = { mat.step[0], mat.step[1], sizeof(float) };
+
+    return py::array_t<float>(shape, strides, mat.ptr<float>(), py::cast(mat));
+}
+
 
 int main(int argc, char *argv[]){
     std::string inp_xml = "./input.xml" ;
@@ -162,8 +177,9 @@ int main(int argc, char *argv[]){
                 for (size_t w = 0; w < max_widnum; w++){
                     cv::Rect roi(oriwidth * w, oriheight * h, xwidth, xheight) ;
                     cv::Mat crop_img = cur_img(roi) ;
-                    smalldata_tensor[i] = crop_img.clone();
                     i = i + 1 ;
+                    smalldata_tensor[i] = crop_img.clone();
+                    
 
                     if (w == max_widnum - 1 && width - max_widnum * oriwidth > 0){
                         i = i + 1 ;
@@ -227,9 +243,23 @@ int main(int argc, char *argv[]){
             auto w_left_right = py_util.attr("tile")(w_lr, sr_oriheight, 1) ;
             auto w_left_right_downedge = py_util.attr("tile")(w_lr, overlap_downedge * sr_scale - sr_overlap, 1) ;
             auto w_left_right_corner = py_util.attr("tile")(w_lr, sr_overlap, 1) ;
+            
+            auto w_ud = py_util.attr("reshape")(w_lr, sr_overlap, 1)  ;
+            auto w_up_down = py_util.attr("tile")(w_ud, 1, sr_oriwidth) ;
+            auto w_up_down_rightedge = py_util.attr("tile")(w_ud, 1, 
+                                                overlap_rightedge * sr_scale) ;\
 
-            auto w_ud = w_lr.attr("reshape")(1, sr_overlap);
+            for (size_t i = 0; i < dic_len ; i++){
+                if (i % 10 == 0)
+                    std::cout << "finished: [" << i << "]/[" << dic_len <<"]"<< std::endl ;
+                    auto tmp = mat_to_array(smalldata_tensor[i + 1]) ;
+                    std::cout << typeid(tmp).name() << std::endl;
+                    std::cout << "[debug ] " << std::endl ;
+                    auto img_e = py_model.attr("inference")(tmp).cast<py::array_t<float>>();
+                    auto shape = img_e.shape() ;
+                    std::cout << "the shape of img_e is " << shape[0] << ", " << shape[1] << std::endl ;
 
+            }
         }
     }
 

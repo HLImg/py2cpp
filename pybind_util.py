@@ -29,3 +29,6 @@ class Util:
     def tile(self, weight, k1, k2):
         return np.tile(weight, (k1, k2))
     
+    def reshape(self, d, new_h, new_w):
+        return np.reshape(d, (new_h, new_w))
+    

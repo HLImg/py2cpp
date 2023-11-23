@@ -4,10 +4,13 @@
 # @FileName:  pybind_model.py
 # @Contact :  lianghao@whu.edu.cn
 
+import cv2
 import torch
 import numpy as np
 
+import python.utils.utils_sisr as util_sr
 import python.utils.utils_image as util_img
+import python.utils.utils_deblur as util_deblur
 from python.model.network_usrnet_v1 import USRNet as net
 
 class Model:
@@ -37,13 +40,30 @@ class Model:
         
         self.xmax = xmax
         self.scale = sr_parser.sr_scale
+        self.boarder = sr_parser.boarder_handling
         
         print("end initialize [inference model]")
         
-    def inference(self, img_lq, w, h):
+    def inference(self, img_lq):
+        print("[DEBUG] start inference, the shape is ", img_lq.shape)
         self.model.eval()
+        # previous works
+        xmin_lq, xmax_lq = img_lq.min(), img_lq.max()
+        img_lq = np.float32(img_lq / xmax_lq)
+        w, h = img_lq.shape[:2]
+        img_lq = cv2.resize(img_lq, (self.scale * h, self.scale * w), interpolation=cv2.INTER_NEAREST) 
+        img_lq = util_deblur.wrap_boundary_liu(img_lq, [int(np.ceil(self.scale * w / self.boarder + 2) * self.boarder),
+                                                 int(np.ceil(self.scale * h / self.boarder + 2) * self.boarder)])
+        img_wrap= util_sr.downsample_np(img_lq, self.scale, center=False)
+        img_wrap[:w, :h] = img_lq
+        img_lq = np.float32(img_wrap)
+        img_lq  = cv2.cvtColor(img_lq , cv2.COLOR_GRAY2RGB)
         img_lq = util_img.single2tensor4(img_lq)
         img_lq = img_lq.to(self.device)
         img_e = self.model(img_lq, self.kernel, self.scale, self.sigma)
         img_e = util_img.tensor2uint(img_e, self.xmax)[:self.scale * w, :self.scale * h, ...]
+        img_e = img_e[:, :, 0]
+        img_e = np.clip(img_e, xmin_lq, xmax_lq)
+        print("[DEBUG] finish inference, the shape is ", img_e.shape)
         return img_e
+    
