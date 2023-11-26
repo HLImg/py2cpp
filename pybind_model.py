@@ -65,9 +65,10 @@ class Model:
         self.kernel = self.kernel.to(self.device)
         self.sigma = self.sigma.to(self.device)
         self.model.eval()
-        import pdb ; pdb.set_trace()
+        # import pdb ; pdb.set_trace()
         torch.cuda.empty_cache()
-        img_e = self.model(img_lq, self.kernel, self.scale, self.sigma)
+        with torch.no_grad():
+            img_e = self.model(img_lq, self.kernel, self.scale, self.sigma)
         img_e = util_img.tensor2uint(img_e, self.xmax)[:self.scale * w, :self.scale * h, ...]
         img_e = img_e[:, :, 0]
         img_e = np.clip(img_e, xmin_lq, xmax_lq)
