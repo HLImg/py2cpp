@@ -21,12 +21,10 @@ class Util:
     
     def read_gdal_mul(self, path):
         image_chw = util_img.gdal_read(path)
-        
         if len(image_chw.shape) == 2:
             image_chw = image_chw[np.newaxis, ...]
         
-        image_chw_new = np.transpose(image_chw, (1, 2, 0))
-
+        image_chw_new = np.transpose(image_chw, (1, 2, 0))   
         return image_chw_new
     
     def calWeight(self, d, k):
@@ -39,4 +37,5 @@ class Util:
     
     def reshape(self, d, new_h, new_w):
         return np.reshape(d, (new_h, new_w))
+    
     

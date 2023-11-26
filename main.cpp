@@ -73,23 +73,18 @@ cv::Mat np2mat_u16(py::array_t<uint16_t>& img){
     cv::Mat reshaped_mat = flat_mat.reshape(channels, h);
     return reshaped_mat ;
 }
-cv::Mat np2mat_mul(py::array_t<uint16_t>& img_np) {
-    // Request buffer info from numpy array
-    py::buffer_info buf_info = img_np.request();
+cv::Mat np2mat_mul(py::array_t<uint16_t>& img){
+    py::buffer_info buf_info = img.request();
+    size_t h, w, channels ;
+    h = buf_info.shape[0] ;
+    w = buf_info.shape[1] ;
+    channels = buf_info.shape[2] ;
 
-    // Get the dimensions of the image
-    size_t h, w, channels;
-    h = buf_info.shape[0];
-    w = buf_info.shape[1];
-    channels = buf_info.shape[2];
+    // 重塑flat_mat以匹配原始图像的维度和通道
+    cv::Mat reshaped_mat(h, w, CV_16UC4, img.mutable_data());
 
-
-
-    // Create a cv::Mat with the direct pointer to numpy array data
-    // Note: this assumes numpy array is C-contiguous in memory
-    cv::Mat img_mat(h, w, CV_16UC4, img_np); 
-
-    return img_mat.clone(); // Make a copy to ensure persistence of the data
+    std::cout << "converted  " << reshaped_mat.rows <<"  " <<reshaped_mat.cols << "   "<< reshaped_mat.channels() << std::endl;
+    return reshaped_mat ;
 }
 
 
@@ -168,7 +163,7 @@ py::array_t<T> to_py_arr(const cv::Mat& img) {
 int main(int argc, char *argv[]){
 
     // setting cuda device
-    setenv("CUDA_VISIBLE_DEVICES", "-1", 1);
+    // setenv("CUDA_VISIBLE_DEVICES", "-1", 1);
 
     std::string inp_xml = "./input.xml" ;
     std::string sr_xml = "./super_option.xml" ;
@@ -230,7 +225,7 @@ int main(int argc, char *argv[]){
         auto image = py_util.attr("read_gdal_mul")(inp_data).cast<py::array_t<uint16_t>>() ;
         // auto mat_hwc = to_mat_mul(image) ;  // u16int, (h, w, c)
         // auto mat_hwc = np2mat_u16(image) ;
-        auto mat_hwc = np2mat_mul(image) ;
+        auto mat_hwc = np2mat_u16(image) ;
         statis_mul(mat_hwc) ;
 
         // 检查每个通道的最大值

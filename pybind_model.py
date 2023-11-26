@@ -19,7 +19,7 @@ class Model:
     def __init__(self, k, sr_parser, xmax):
         print("start initialize [inference model]")
         torch.cuda.empty_cache()
-        
+        self.name = sr_parser.model_name
         if 'tiny' in sr_parser.model_name:
             self.model = net(n_iter=6, h_nc=32, in_nc=4, out_nc=3, nc=[16, 32, 64, 64],
                             nb=2, act_mode="R", downsample_mode='strideconv', upsample_mode="convtranspose")
@@ -36,10 +36,6 @@ class Model:
         self.kernel = util_img.single2tensor4(k[..., np.newaxis])
         self.sigma = torch.tensor(sr_parser.noise_level_model).float().view([1, 1, 1, 1])
         
-        self.model = self.model.to(self.device)
-        self.kernel = self.kernel.to(self.device)
-        self.sigma = self.sigma.to(self.device)
-        
         self.xmax = xmax
         self.scale = sr_parser.sr_scale
         self.boarder = sr_parser.boarder_handling
@@ -47,9 +43,10 @@ class Model:
         print("end initialize [inference model]")
         
     def inference(self, img_lq, i):
+        
         # print("[DEBUG] start inference, the shape is ", img_lq.shape, f"py:arr {img_lq.min()}, {img_lq.max()}, mean = {img_lq.mean()}")
         savemat(f"test/test_{i}.mat", {"data": img_lq})
-        self.model.eval()
+        
         # previous works
         xmin_lq, xmax_lq = img_lq.min(), img_lq.max()
         img_lq = np.float32(img_lq / self.xmax)
@@ -64,6 +61,12 @@ class Model:
         img_lq = util_img.single2tensor4(img_lq)
         img_lq = img_lq.to(self.device)
         # print(img_lq.mean(), self.kernel.mean(), self.scale, self.sigma)
+        self.model = self.model.to(self.device)
+        self.kernel = self.kernel.to(self.device)
+        self.sigma = self.sigma.to(self.device)
+        self.model.eval()
+        import pdb ; pdb.set_trace()
+        torch.cuda.empty_cache()
         img_e = self.model(img_lq, self.kernel, self.scale, self.sigma)
         img_e = util_img.tensor2uint(img_e, self.xmax)[:self.scale * w, :self.scale * h, ...]
         img_e = img_e[:, :, 0]
