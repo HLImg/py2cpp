@@ -47,8 +47,8 @@ class Model:
         print("end initialize [inference model]")
         
     def inference(self, img_lq, i):
-        print("[DEBUG] start inference, the shape is ", img_lq.shape, f"py:arr {img_lq.min()}, {img_lq.max()}, mean = {img_lq.mean()}")
-        savemat(f"test/test_{i}.mat", {"data": img_lq})
+        # print("[DEBUG] start inference, the shape is ", img_lq.shape, f"py:arr {img_lq.min()}, {img_lq.max()}, mean = {img_lq.mean()}")
+        # savemat(f"test/test_{i}.mat", {"data": img_lq})
         self.model.eval()
         # previous works
         xmin_lq, xmax_lq = img_lq.min(), img_lq.max()
@@ -63,12 +63,12 @@ class Model:
         img_lq  = cv2.cvtColor(img_lq , cv2.COLOR_GRAY2RGB)
         img_lq = util_img.single2tensor4(img_lq)
         img_lq = img_lq.to(self.device)
-        print(img_lq.mean(), self.kernel.mean(), self.scale, self.sigma)
+        # print(img_lq.mean(), self.kernel.mean(), self.scale, self.sigma)
         img_e = self.model(img_lq, self.kernel, self.scale, self.sigma)
         img_e = util_img.tensor2uint(img_e, self.xmax)[:self.scale * w, :self.scale * h, ...]
         img_e = img_e[:, :, 0]
         img_e = np.clip(img_e, xmin_lq, xmax_lq)
-        print("[DEBUG] finish inference, the shape is ", img_e.shape, f"min = {img_e.min()}, max = {img_e.max()},  mean = {img_e.mean()}")
-        savemat(f"test/test_sr{i}.mat", {"data": img_e})
+        # print("[DEBUG] finish inference, the shape is ", img_e.shape, f"min = {img_e.min()}, max = {img_e.max()},  mean = {img_e.mean()}")
+        # savemat(f"test/test_sr{i}.mat", {"data": img_e})
         return img_e
     
