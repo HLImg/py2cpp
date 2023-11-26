@@ -47,12 +47,12 @@ class Model:
         print("end initialize [inference model]")
         
     def inference(self, img_lq, i):
-        print("[DEBUG] start inference, the shape is ", img_lq.shape, f"py:arr {img_lq.min()}, {img_lq.max()}")
+        print("[DEBUG] start inference, the shape is ", img_lq.shape, f"py:arr {img_lq.min()}, {img_lq.max()}, mean = {img_lq.mean()}")
         savemat(f"test/test_{i}.mat", {"data": img_lq})
         self.model.eval()
         # previous works
         xmin_lq, xmax_lq = img_lq.min(), img_lq.max()
-        img_lq = np.float32(img_lq / xmax_lq)
+        img_lq = np.float32(img_lq / self.xmax)
         w, h = img_lq.shape[:2]
         img = cv2.resize(img_lq, (self.scale * h, self.scale * w), interpolation=cv2.INTER_NEAREST) 
         img = util_deblur.wrap_boundary_liu(img, [int(np.ceil(self.scale * w / self.boarder + 2) * self.boarder),
@@ -63,6 +63,7 @@ class Model:
         img_lq  = cv2.cvtColor(img_lq , cv2.COLOR_GRAY2RGB)
         img_lq = util_img.single2tensor4(img_lq)
         img_lq = img_lq.to(self.device)
+        print(img_lq.mean(), self.kernel.mean(), self.scale, self.sigma)
         img_e = self.model(img_lq, self.kernel, self.scale, self.sigma)
         img_e = util_img.tensor2uint(img_e, self.xmax)[:self.scale * w, :self.scale * h, ...]
         img_e = img_e[:, :, 0]
