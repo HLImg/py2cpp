@@ -24,10 +24,10 @@ class Util:
         
         if len(image_chw.shape) == 2:
             image_chw = image_chw[np.newaxis, ...]
-              
-        image_chw = np.transpose(image_chw, (1, 2, 0))
-        statis(image_chw)
-        return image_chw
+        
+        image_chw_new = np.transpose(image_chw, (1, 2, 0))
+
+        return image_chw_new
     
     def calWeight(self, d, k):
         x = np.arange(-d / 2, d / 2)

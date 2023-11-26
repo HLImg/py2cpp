@@ -67,13 +67,31 @@ cv::Mat np2mat_u16(py::array_t<uint16_t>& img){
     h = buf_info.shape[0] ;
     w = buf_info.shape[1] ;
     channels = buf_info.shape[2] ;
-
     cv::Mat flat_mat(h * w * channels, 1, CV_16UC1, img.mutable_data());
 
     // 重塑flat_mat以匹配原始图像的维度和通道
     cv::Mat reshaped_mat = flat_mat.reshape(channels, h);
     return reshaped_mat ;
 }
+cv::Mat np2mat_mul(py::array_t<uint16_t>& img_np) {
+    // Request buffer info from numpy array
+    py::buffer_info buf_info = img_np.request();
+
+    // Get the dimensions of the image
+    size_t h, w, channels;
+    h = buf_info.shape[0];
+    w = buf_info.shape[1];
+    channels = buf_info.shape[2];
+
+
+
+    // Create a cv::Mat with the direct pointer to numpy array data
+    // Note: this assumes numpy array is C-contiguous in memory
+    cv::Mat img_mat(h, w, CV_16UC4, img_np); 
+
+    return img_mat.clone(); // Make a copy to ensure persistence of the data
+}
+
 
 template <typename T>
 cv::Mat to_mat_mul(const py::array_t<T>& img) {
@@ -199,7 +217,7 @@ int main(int argc, char *argv[]){
     std::cout << "input mux path is " << inp_mux_path << std::endl ;
     std::cout << "crop setting [xheight]=" << xheight << " [xwidth]=" << xwidth << std::endl;
 
-    for (int ii = 0; ii < 1 ; ii++){
+    for (int ii = 1; ii < 2 ; ii++){
         std::string inp_data;
         if (ii == 0){
             inp_data = inp_pan_path ;
@@ -211,7 +229,25 @@ int main(int argc, char *argv[]){
         }
         auto image = py_util.attr("read_gdal_mul")(inp_data).cast<py::array_t<uint16_t>>() ;
         // auto mat_hwc = to_mat_mul(image) ;  // u16int, (h, w, c)
-        auto mat_hwc = np2mat_u16(image) ;
+        // auto mat_hwc = np2mat_u16(image) ;
+        auto mat_hwc = np2mat_mul(image) ;
+        statis_mul(mat_hwc) ;
+
+        // 检查每个通道的最大值
+        for (size_t c = 0 ; c < 4 ; c++){
+    int cmax = 0;
+    double mu = 0;
+    for (size_t i = 0 ; i < mat_hwc.rows ; i++)
+        for (size_t j = 0; j < mat_hwc.cols;j++){
+            cv::Vec<uint16_t, 4> pixel = mat_hwc.at<cv::Vec<uint16_t, 4>>(i, j);
+            if (cmax < pixel[c])
+                cmax = pixel[c];
+            mu = mu + pixel[c];
+        }
+    
+    std::cout << "band-" << c + 1 << " , max is " << cmax << " , mu is" << mu / (mat_hwc.rows * mat_hwc.cols) << std::endl ;
+}
+
 
         size_t overlap = 200 ;
         size_t num_band = mat_hwc.channels();
@@ -228,7 +264,7 @@ int main(int argc, char *argv[]){
             int from_to[] = { iii, 0 };
             cv::mixChannels(&mat_hwc , 1, &cur_img, 1, from_to, 1); 
 
-            std::cout << "cur-img" << std::endl ;
+            std::cout << "cur-img - band : " << iii + 1 << " / " << num_band << std::endl ;
             statis(cur_img) ;
 
             size_t height = cur_img.rows ;
@@ -260,6 +296,7 @@ int main(int argc, char *argv[]){
             int overlap_rightedge, overlap_downedge ;
             std::map<int, cv::Mat> smalldata_tensor ;
 
+            std::cout << "start to crop" << std::endl;
             
             for (size_t h = 0 ; h < max_heinum ; h++){
                 for (size_t w = 0; w < max_widnum; w++){
@@ -304,6 +341,7 @@ int main(int argc, char *argv[]){
                 }
             }
 
+            std::cout << "crop number is " << i << std::endl ;
             cur_img.release() ;
 
         
