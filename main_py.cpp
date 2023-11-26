@@ -27,8 +27,7 @@ std::vector<size_t> get_array_shape(const py::array_t<T>& img){
     }
 }
 
-template <typename T>
-py::array_t<T> py_crop(py::array_t<T>& img, )
+
 
 int main(int argc, char *argv){
     // set cuda device
@@ -59,6 +58,8 @@ int main(int argc, char *argv){
     py::object inp_args = py_module_xml.attr("XMLParserInput")(inp_xml) ;
     py::object sr_args = py_module_xml.attr("XMLParserSR")(sr_xml) ;
 
+    py::module np = py::module::import("numpy");
+
     /**
      * @brief : crop image
     */
@@ -80,70 +81,72 @@ int main(int argc, char *argv){
     std::cout << "input mux path is " << inp_mux_path << std::endl ;
     std::cout << "crop setting [xheight]=" << xheight << " [xwidth]=" << xwidth << std::endl;
 
-for (int ii = 0; ii < 2 ; ii++){
-    std::string inp_data;
-    if (ii == 0){
-        inp_data = inp_pan_path ;
-        std::cout << "############ [ start SR-PAN .... ] ############" << std::endl;
-    }
-    else{
-        inp_data = inp_mux_path ;
-        std::cout << "############ [ start SR-MUX .... ] ############" << std::endl;
-    }
-    auto image = py_util.attr("read_gdal_mul")(inp_data).cast<py::array_t<uint16_t>>() ;
-    std::vector<size_t> ori_shape = get_array_shape(image);
-    size_t overlap = 200 ;
-    size_t num_band = ori_shape[2];
+    for (int ii = 1; ii < 2 ; ii++){
+        std::string inp_data;
+        if (ii == 0){
+            inp_data = inp_pan_path ;
+            std::cout << "############ [ start SR-PAN .... ] ############" << std::endl;
+        }
+        else{
+            inp_data = inp_mux_path ;
+            std::cout << "############ [ start SR-MUX .... ] ############" << std::endl;
+        }
+        auto image = py_util.attr("read_gdal_mul")(inp_data).cast<py::array_t<uint16_t>>() ;
+        std::vector<size_t> ori_shape = get_array_shape(image);
+        size_t overlap = 200 ;
+        size_t num_band = ori_shape[2];
 
-    for (int iii = 0 ; iii < num_band; iii++){
-        std::cout << "start band  " << iii + 1 << std::endl ; 
-        py::array_t<uint16_t> cut_img({ori_shape[0], ori_shape[1], 1});
+        for (int iii = 0 ; iii < num_band; iii++){
+            std::cout << "start band  " << iii + 1 << std::endl ; 
+            std::vector<size_t> shape = {ori_shape[0], ori_shape[1], 1};
+            std::vector<size_t> strides = {sizeof(uint16_t), sizeof(uint16_t) * ori_shape[0], sizeof(uint16_t) * ori_shape[0] * ori_shape[1]};
+            py::array_t<uint16_t> cut_img(shape, strides);
         
-        // deepcopy
-        for (int y = 0; y < ori_shape[0]; ++y) {
-            for (int x = 0; x < ori_shape[1]; ++x) {
-                cut_img.mutable_at(y, x, 0) = image.at(y, x, iii);
+            // deepcopy
+            for (int y = 0; y < ori_shape[0]; ++y) 
+                for (int x = 0; x < ori_shape[1]; ++x) 
+                    cut_img.mutable_at(y, x, 0) = image.at(y, x, iii);
         
-        size_t height = ori_shape[0] ;
-        size_t width = ori_shape[1] ;
+            size_t height = ori_shape[0] ;
+            size_t width = ori_shape[1] ;
 
-        double xmax = py::max(cut_img).cast<double>();
+            double xmax = np.attr("amax")(cut_img).cast<double>();
 
-        int oriheight = xheight - overlap ;
-        int oriwidth = xwidth - overlap ;
+            std::cout << "xmax  " << xmax << std::endl ; 
 
-        int max_heinum = std::ceil((height - xheight) / static_cast<double>(oriheight));
-        int max_widnum = std::ceil((width - xwidth) / static_cast<double>(oriwidth)) ;
+            int oriheight = xheight - overlap ;
+            int oriwidth = xwidth - overlap ;
 
-        int xheinum1 = max_heinum ;
-        int xwidnum1 = max_widnum ;
+            int max_heinum = std::ceil((height - xheight) / static_cast<double>(oriheight));
+            int max_widnum = std::ceil((width - xwidth) / static_cast<double>(oriwidth)) ;
 
-        if (height - max_heinum * oriheight > 0)
-            xheinum1 = max_heinum + 1 ;
+            int xheinum1 = max_heinum ;
+            int xwidnum1 = max_widnum ;
+
+            if (height - max_heinum * oriheight > 0)
+                xheinum1 = max_heinum + 1 ;
             
-        if (width - max_widnum * oriwidth > 0)
-            xwidnum1 = max_widnum + 1 ; 
+            if (width - max_widnum * oriwidth > 0)
+                xwidnum1 = max_widnum + 1 ; 
         
         // start to crop image to patches
 
-        int i = 0 ;
-        int overlap_rightedge, overlap_downedge ;
-        std::map<int, cv::Mat> smalldata_tensor ;
+        // int i = 0 ;
+        // int overlap_rightedge, overlap_downedge ;
+        // std::map<int, cv::Mat> smalldata_tensor ;
 
-        for (size_t h = 0 ; h < max_heinum; h++){
-            for (size_t w = 0; w < max_widnum; w++){
-                // Assuming oriheight, h, xheight, oriwidth, w and xwidth are properly defined
-                // 拷贝
-                py::slice row_slice(oriheight * h, oriheight * h + xheight, 1);
-                py::slice col_slice(oriwidth * w, oriwidth * w + xwidth, 1);
-                py::array_t<uint16_t> crop_img = cut_img[row_slice][col_slice];
+        // for (size_t h = 0 ; h < max_heinum; h++){
+        //     for (size_t w = 0; w < max_widnum; w++){
+        //         // Assuming oriheight, h, xheight, oriwidth, w and xwidth are properly defined
+        //         // 拷贝
+        //         py::slice row_slice(oriheight * h, oriheight * h + xheight, 1);
+        //         py::slice col_slice(oriwidth * w, oriwidth * w + xwidth, 1);
+        //         py::array_t<uint16_t> crop_img = cut_img[row_slice][col_slice];
 
-            }
-        }
+        //     }
+        // }
 
     }
 }
 
     }
-
-}

@@ -47,7 +47,7 @@ class Model:
         print("end initialize [inference model]")
         
     def inference(self, img_lq, i):
-        print("[DEBUG] start inference, the shape is ", img_lq.shape)
+        print("[DEBUG] start inference, the shape is ", img_lq.shape, f"py:arr {img_lq.min()}, {img_lq.max()}")
         savemat(f"test/test_{i}.mat", {"data": img_lq})
         self.model.eval()
         # previous works
@@ -67,6 +67,7 @@ class Model:
         img_e = util_img.tensor2uint(img_e, self.xmax)[:self.scale * w, :self.scale * h, ...]
         img_e = img_e[:, :, 0]
         img_e = np.clip(img_e, xmin_lq, xmax_lq)
-        print("[DEBUG] finish inference, the shape is ", img_e.shape)
+        print("[DEBUG] finish inference, the shape is ", img_e.shape, f"min = {img_e.min()}, max = {img_e.max()},  mean = {img_e.mean()}")
+        savemat(f"test/test_sr{i}.mat", {"data": img_e})
         return img_e
     

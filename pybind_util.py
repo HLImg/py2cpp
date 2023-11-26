@@ -11,15 +11,23 @@ import python.utils.utils_sisr as util_sr
 import python.utils.utils_image as util_img
 import python.utils.utils_deblur as util_deblur
 
+
+def statis(img):
+    print(f"read_gdal : xmin = [{img.min()}], xmax = [{img.max()}], mean = [{img.mean()}], shape = {img.shape}, dtype = {img.dtype}")
+
 class Util:
     def __init__(self) -> None:
         print("initial [Util] for image processing")
     
     def read_gdal_mul(self, path):
         image_chw = util_img.gdal_read(path)
+        
         if len(image_chw.shape) == 2:
-            return np.expand_dims(image_chw, -1) 
-        return np.transpose(image_chw, (1, 2, 0))
+            image_chw = image_chw[np.newaxis, ...]
+              
+        image_chw = np.transpose(image_chw, (1, 2, 0))
+        statis(image_chw)
+        return image_chw
     
     def calWeight(self, d, k):
         x = np.arange(-d / 2, d / 2)
