@@ -230,18 +230,18 @@ int main(int argc, char *argv[]){
 
         // 检查每个通道的最大值
         for (size_t c = 0 ; c < 4 ; c++){
-    int cmax = 0;
-    double mu = 0;
-    for (size_t i = 0 ; i < mat_hwc.rows ; i++)
-        for (size_t j = 0; j < mat_hwc.cols;j++){
-            cv::Vec<uint16_t, 4> pixel = mat_hwc.at<cv::Vec<uint16_t, 4>>(i, j);
-            if (cmax < pixel[c])
-                cmax = pixel[c];
-            mu = mu + pixel[c];
-        }
+            int cmax = 0;
+            double mu = 0;
+            for (size_t i = 0 ; i < mat_hwc.rows ; i++)
+                for (size_t j = 0; j < mat_hwc.cols;j++){
+                    cv::Vec<uint16_t, 4> pixel = mat_hwc.at<cv::Vec<uint16_t, 4>>(i, j);
+                    if (cmax < pixel[c])
+                    cmax = pixel[c];
+                mu = mu + pixel[c];
+                }
     
-    std::cout << "band-" << c + 1 << " , max is " << cmax << " , mu is" << mu / (mat_hwc.rows * mat_hwc.cols) << std::endl ;
-}
+            std::cout << "band-" << c + 1 << " , max is " << cmax << " , mu is" << mu / (mat_hwc.rows * mat_hwc.cols) << std::endl ;
+        }
 
 
         size_t overlap = 200 ;
