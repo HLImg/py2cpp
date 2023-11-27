@@ -16,7 +16,7 @@ from scipy.io import savemat
 from python.model.network_usrnet_v1 import USRNet as net
 
 class Model:
-    def __init__(self, k, sr_parser, xmax):
+    def __init__(self, k, sr_parser, h, w, channel=1):
         print("start initialize [inference model]")
         torch.cuda.empty_cache()
         self.name = sr_parser.model_name
@@ -36,20 +36,22 @@ class Model:
         self.kernel = util_img.single2tensor4(k[..., np.newaxis])
         self.sigma = torch.tensor(sr_parser.noise_level_model).float().view([1, 1, 1, 1])
         
-        self.xmax = xmax
+        # self.xmax = xmax
         self.scale = sr_parser.sr_scale
         self.boarder = sr_parser.boarder_handling
+
+        self.res = np.zeros((h * self.scale, w * self.scale, 1), dtype=np.uint16)
         
         print("end initialize [inference model]")
         
-    def inference(self, img_lq, i):
+    def inference(self, img_lq, xmax, i):
         img_lq = img_lq.squeeze()
         # print("[DEBUG] start inference, the shape is ", img_lq.shape, f"py:arr {img_lq.min()}, {img_lq.max()}, mean = {img_lq.mean()}")
-        # savemat(f"test/test_{i}.mat", {"data": img_lq})
+        savemat(f"test/test_{i}.mat", {"data": img_lq})
         
         # previous works
         xmin_lq, xmax_lq = img_lq.min(), img_lq.max()
-        img_lq = np.float32(img_lq / self.xmax)
+        img_lq = np.float32(img_lq / xmax)
         w, h = img_lq.shape[:2]
         img = cv2.resize(img_lq, (self.scale * h, self.scale * w), interpolation=cv2.INTER_NEAREST) 
         img = util_deblur.wrap_boundary_liu(img, [int(np.ceil(self.scale * w / self.boarder + 2) * self.boarder),
@@ -69,10 +71,10 @@ class Model:
         torch.cuda.empty_cache()
         with torch.no_grad():
             img_e = self.model(img_lq, self.kernel, self.scale, self.sigma)
-        img_e = util_img.tensor2uint(img_e, self.xmax)[:self.scale * w, :self.scale * h, ...]
+        img_e = util_img.tensor2uint(img_e, xmax)[:self.scale * w, :self.scale * h, ...]
         img_e = img_e[:, :, 0]
         img_e = np.clip(img_e, xmin_lq, xmax_lq)
         # print("[DEBUG] finish inference, the shape is ", img_e.shape, f"min = {img_e.min()}, max = {img_e.max()},  mean = {img_e.mean()}")
-        # savemat(f"test/test_sr{i}.mat", {"data": img_e})
+        savemat(f"test/test_sr{i}.mat", {"data": img_e})
         return img_e
     

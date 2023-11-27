@@ -204,29 +204,16 @@ int main(int argc, char *argv[]){
         }
         auto image = py_util.attr("read_gdal_mul")(inp_data).cast<py::array_t<uint16_t>>() ;
         auto mat_hwc = np2mat_u16(image) ;
-        statis_mul(mat_hwc) ;
 
-        // 检查每个通道的最大值
-        for (size_t c = 0 ; c < mat_hwc.channels() ; c++){
-            int cmax = 0;
-            double mu = 0;
-            for (size_t i = 0 ; i < mat_hwc.rows ; i++)
-                for (size_t j = 0; j < mat_hwc.cols;j++){
-                    cv::Vec<uint16_t, 4> pixel = mat_hwc.at<cv::Vec<uint16_t, 4>>(i, j);
-                    if (cmax < pixel[c])
-                    cmax = pixel[c];
-                mu = mu + pixel[c];
-                }
-    
-            std::cout << "band-" << c + 1 << " , max is " << cmax << " , mu is" << mu / (mat_hwc.rows * mat_hwc.cols) << std::endl ;
-        }
-
+        size_t inp_h = mat_hwc.rows ;
+        size_t inp_w = mat_hwc.cols ;
 
         size_t overlap = 200 ;
         size_t num_band = mat_hwc.channels();
 
-        // TODO
-        //cv::Mat smux = cv::Mat::zeros(height0, width0, CV_16UC4);
+
+        auto k  = sr_args.attr("k").cast<py::array_t<_Float32>>() ;
+        py::object py_model = py_module_model.attr("Model")(k, sr_args, inp_h, inp_w, num_band);
 
         for (int iii = 0 ; iii < num_band; iii++){
             std::cout << "start band  " << iii + 1 << std::endl ; 
@@ -237,7 +224,7 @@ int main(int argc, char *argv[]){
             cv::mixChannels(&mat_hwc , 1, &cur_img, 1, from_to, 1); 
 
             std::cout << "cur-img - band : " << iii + 1 << " / " << num_band << std::endl ;
-            statis(cur_img) ;
+            // statis(cur_img) ;
 
             size_t height = cur_img.rows ;
             size_t width = cur_img.cols ;
@@ -277,13 +264,13 @@ int main(int argc, char *argv[]){
                     
                     i = i + 1 ;
                     smalldata_tensor[i] = crop_img.clone();
-                    statis(smalldata_tensor[i]) ;
+                    // statis(smalldata_tensor[i]) ;
                     if (w == max_widnum - 1 && width - max_widnum * oriwidth > 0){
                         i = i + 1 ;
                         cv::Rect roi_r(oriwidth * (w + 1), oriheight * h, width - oriwidth * (w + 1), xheight);
                         cv::Mat crop_img_r = cur_img(roi_r);
                         smalldata_tensor[i] = crop_img_r.clone();
-                        statis(smalldata_tensor[i]) ;
+                        // statis(smalldata_tensor[i]) ;
                         overlap_rightedge = width - oriwidth * (w + 1);  
                     }
                 }
@@ -296,27 +283,25 @@ int main(int argc, char *argv[]){
                     cv::Mat crop_img = cur_img(roi);
                     overlap_downedge = height - (oriheight * max_heinum);
                     smalldata_tensor[i] = crop_img.clone();
-                    statis(smalldata_tensor[i]) ;
+                    // statis(smalldata_tensor[i]) ;
                     if (w == max_widnum - 1 &&  width - max_widnum * oriwidth > 0){
                         i = i + 1 ;
                         cv::Rect roi_r(oriwidth * (w + 1), oriheight * max_heinum, 
                                         width - oriwidth * (w + 1), height - oriheight * max_heinum) ;
                         cv::Mat crop_img_r = cur_img(roi_r);
                         smalldata_tensor[i] = crop_img_r.clone();
-                        statis(smalldata_tensor[i]) ;
+                        // statis(smalldata_tensor[i]) ;
                         double min2;
                         double max2 = 0 ;
                         cv::minMaxLoc(smalldata_tensor[i], &min2, &max2);
-                        std::cout << "[debug : crop_img], ori " <<  min2 << ", " << max2 << std::endl ; 
-                        std::cout << "[debug]  channel " << cur_img.channels() <<std::endl;
+                        // std::cout << "[debug : crop_img], ori " <<  min2 << ", " << max2 << std::endl ; 
+                        // std::cout << "[debug]  channel " << cur_img.channels() <<std::endl;
                     }
                 }
             }
 
-            std::cout << "crop number is " << i << std::endl ;
+            // std::cout << "crop number is " << i << std::endl ;
             cur_img.release() ;
-
-        
 
             /**
              * @brief : super resolution
@@ -324,8 +309,8 @@ int main(int argc, char *argv[]){
              * @date : Nov 20 23:16
             */
             
-            auto k  = sr_args.attr("k").cast<py::array_t<_Float32>>() ;
-            py::object py_model = py_module_model.attr("Model")(k, sr_args, xmax);
+            // auto k  = sr_args.attr("k").cast<py::array_t<_Float32>>() ;
+            // py::object py_model = py_module_model.attr("Model")(k, sr_args, xmax, );
 
             int dic_len = smalldata_tensor.size() ;
             int boarder_handling = sr_args.attr("boarder_handling").cast<int>() ;
@@ -338,7 +323,7 @@ int main(int argc, char *argv[]){
             size_t sr_height = height * sr_scale ;
             size_t sr_width = width * sr_scale ;
 
-            cv::Mat mage = cv::Mat::zeros(sr_height, sr_width, CV_16U);
+            // cv::Mat mage = cv::Mat::zeros(sr_height, sr_width, CV_16U);
 
             size_t num_row = xwidnum1 ;
             size_t num_col = xheinum1 ;
@@ -365,13 +350,16 @@ int main(int argc, char *argv[]){
                 double min2;
                 double max2 = 0 ;
                 auto img = smalldata_tensor[i + 1] ;
-                statis(img) ;
+                // statis(img) ;
                 cv::minMaxLoc(cur_img, &min2, &max2);
                 auto tmp = to_py_arr<u_int16_t>(img) ;
-                std::cout << "[debug : to_py_arr], ori " <<  min2 << ", " << max2 << std::endl ; 
-                auto img_e = py_model.attr("inference")(tmp, i).cast<py::array_t<float>>();
-                auto shape = img_e.shape() ;
-                std::cout << "the shape of img_e is " << shape[0] << ", " << shape[1] << std::endl ;
+                // std::cout << "[debug : to_py_arr], ori " <<  min2 << ", " << max2 << std::endl ; 
+                auto img_e = py_model.attr("inference")(tmp, xmax, i).cast<py::array_t<float>>();
+                
+                int n_row = i % num_row ;
+                int n_col = i / num_row ; 
+
+
             }
         }
         
