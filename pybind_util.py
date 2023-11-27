@@ -20,12 +20,15 @@ class Util:
         print("initial [Util] for image processing")
     
     def read_gdal_mul(self, path):
-        image_chw = util_img.gdal_read(path)
-        if len(image_chw.shape) == 2:
-            image_chw = image_chw[np.newaxis, ...]
+        image = util_img.gdal_read(path)
+        if len(image.shape) == 2:
+            image = image[np.newaxis, ...]
         
-        image_chw_new = np.transpose(image_chw, (1, 2, 0))   
-        return image_chw_new
+        image = np.transpose(image, (1, 2, 0))
+        # important operators
+        if not image.flags['C_CONTIGUOUS']:
+            image = np.ascontiguousarray(image)   
+        return image
     
     def calWeight(self, d, k):
         x = np.arange(-d / 2, d / 2)

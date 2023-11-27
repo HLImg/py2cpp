@@ -60,7 +60,7 @@ void statis_mul(const cv::Mat& img){
     std::cout << "hwc : xmin = [" << xmin << "] , xmax = [" << xmax << "], mean = [" << mu / count << " ]" << std::endl ;
 }
 
-
+/*
 cv::Mat np2mat_u16(py::array_t<uint16_t>& img){
     py::buffer_info buf_info = img.request();
     size_t h, w, channels ;
@@ -87,62 +87,6 @@ cv::Mat np2mat_mul(py::array_t<uint16_t>& img){
     return reshaped_mat ;
 }
 
-
-template <typename T>
-cv::Mat to_mat_mul(const py::array_t<T>& img) {
-    auto r = img.template unchecked<3>();
-    std::cout << r.shape(2) << std::endl ;
-    // 创建4个颜色通道，应该使用 CV_16UC4
-    size_t dtype =  CV_MAKETYPE(CV_16U, r.shape(2));
-
-  
-    cv::Mat mat(r.shape(0), r.shape(1), dtype);
-    double max_py = 0;
-    double max_mat = 0 ;
-    for (size_t c = 0; c < r.shape(2); c++){
-        cv::Mat channel = cv::Mat::zeros(r.shape(0), r.shape(1), CV_16U);
-        for (size_t i = 0; i < r.shape(0); i++) {
-            for (size_t j = 0; j < r.shape(1); j++) {
-                channel.at<uint16_t>(i, j) = r(i, j, c);
-                if (r(i, j, c) >max_py)
-                    max_py =  r(i, j, c) ;
-                if (channel.at<uint16_t>(i, j) > max_mat)
-                    max_mat = channel.at<uint16_t>(i, j) ;
-            }
-        }
-        int from_to[] = {0, int(c)} ;
-        cv::mixChannels(&channel, 1, &mat, 1, from_to, 1);
-    }
-
-
-    double ch_max = 0;
-
-    for (size_t c = 0; c < r.shape(2); c++){
-        for (size_t i = 0; i < r.shape(0); i++) {
-            for (size_t j = 0; j < r.shape(1); j++) {
-                if (mat.at<uint16_t>(i, j) > ch_max)
-                    ch_max = mat.at<uint16_t>(i, j) ;
-            }
-        }
-    }
-    
-    std::cout << "convert : py-xmax  " <<max_py  <<" | cv-xmax  " << max_mat<<" | check-xmax  " << ch_max<< std::endl ;
-    return mat;
-}
-
-template <typename T>
-cv::Mat to_mat_float(const py::array_t<T>& img){
-    auto r = img.template unchecked<2>();
-    // std::cout << "dtype is " << cv::DataType<T>::type << std::endl ;
-    cv::Mat mat(r.shape(0), r.shape(1), CV_32F);
-
-    for (size_t i = 0 ; i < r.shape(0); i++){
-        for (size_t j = 0; j < r.shape(1) ; j++)
-            mat.at<T>(i, j) = r(i, j) ;
-    }
-    return mat ;
-}
-
 template <typename T>
 py::array_t<T> to_py_arr(const cv::Mat& img) {
     if (img.channels() == 1) {
@@ -157,6 +101,42 @@ py::array_t<T> to_py_arr(const cv::Mat& img) {
                sizeof(T) * img.total());
         return py_arr;
     }
+}
+*/
+
+cv::Mat np2mat_u16(py::array_t<u_int16_t>& img){
+    py::buffer_info buf_info = img.request();
+    size_t h, w, channels ;
+    h = buf_info.shape[0] ;
+    w = buf_info.shape[1] ;
+    channels = buf_info.shape[2] ;
+
+    int dtype = CV_MAKETYPE(CV_16U, channels);
+    // 重塑flat_mat以匹配原始图像的维度和通道
+    cv::Mat reshaped_mat(h, w, dtype, img.mutable_data());
+
+    std::cout << "converted  " << reshaped_mat.rows <<"  " <<reshaped_mat.cols << "   "<< reshaped_mat.channels() << std::endl;
+    return reshaped_mat ;
+}
+
+template <typename T>
+py::array_t<T> to_py_arr(const cv::Mat& img) {
+    // 创建一个匹配cv::Mat尺寸和通道数的numpy数组
+    py::array_t<T> py_arr({img.rows, img.cols, img.channels()}, {sizeof(T)*img.cols*img.channels(), sizeof(T)*img.channels(), sizeof(T)});
+    
+    // 获取numpy数组的mutable视图用于修改数据
+    py::buffer_info buf = py_arr.request();
+    
+    for (int i = 0; i < img.rows; ++i) {
+        // 计算每行的指针位置
+        auto ptr_src = img.ptr<T>(i);
+        auto ptr_dst = static_cast<T*>(buf.ptr) + i * img.cols * img.channels();
+        
+        // 复制当前行
+        memcpy(ptr_dst, ptr_src, sizeof(T) * img.cols * img.channels());
+    }
+    
+    return py_arr;
 }
 
 
@@ -223,13 +203,11 @@ int main(int argc, char *argv[]){
             std::cout << "############ [ start SR-MUX .... ] ############" << std::endl;
         }
         auto image = py_util.attr("read_gdal_mul")(inp_data).cast<py::array_t<uint16_t>>() ;
-        // auto mat_hwc = to_mat_mul(image) ;  // u16int, (h, w, c)
-        // auto mat_hwc = np2mat_u16(image) ;
         auto mat_hwc = np2mat_u16(image) ;
         statis_mul(mat_hwc) ;
 
         // 检查每个通道的最大值
-        for (size_t c = 0 ; c < 4 ; c++){
+        for (size_t c = 0 ; c < mat_hwc.channels() ; c++){
             int cmax = 0;
             double mu = 0;
             for (size_t i = 0 ; i < mat_hwc.rows ; i++)
@@ -246,7 +224,6 @@ int main(int argc, char *argv[]){
 
         size_t overlap = 200 ;
         size_t num_band = mat_hwc.channels();
-
 
         // TODO
         //cv::Mat smux = cv::Mat::zeros(height0, width0, CV_16UC4);

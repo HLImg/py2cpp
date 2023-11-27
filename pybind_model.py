@@ -43,7 +43,7 @@ class Model:
         print("end initialize [inference model]")
         
     def inference(self, img_lq, i):
-        
+        img_lq = img_lq.squeeze()
         # print("[DEBUG] start inference, the shape is ", img_lq.shape, f"py:arr {img_lq.min()}, {img_lq.max()}, mean = {img_lq.mean()}")
         savemat(f"test/test_{i}.mat", {"data": img_lq})
         
