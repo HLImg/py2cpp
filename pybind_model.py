@@ -45,7 +45,7 @@ class Model:
     def inference(self, img_lq, i):
         img_lq = img_lq.squeeze()
         # print("[DEBUG] start inference, the shape is ", img_lq.shape, f"py:arr {img_lq.min()}, {img_lq.max()}, mean = {img_lq.mean()}")
-        savemat(f"test/test_{i}.mat", {"data": img_lq})
+        # savemat(f"test/test_{i}.mat", {"data": img_lq})
         
         # previous works
         xmin_lq, xmax_lq = img_lq.min(), img_lq.max()
@@ -73,6 +73,6 @@ class Model:
         img_e = img_e[:, :, 0]
         img_e = np.clip(img_e, xmin_lq, xmax_lq)
         # print("[DEBUG] finish inference, the shape is ", img_e.shape, f"min = {img_e.min()}, max = {img_e.max()},  mean = {img_e.mean()}")
-        savemat(f"test/test_sr{i}.mat", {"data": img_e})
+        # savemat(f"test/test_sr{i}.mat", {"data": img_e})
         return img_e
     
