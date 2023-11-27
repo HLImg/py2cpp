@@ -328,18 +328,21 @@ int main(int argc, char *argv[]){
             size_t num_row = xwidnum1 ;
             size_t num_col = xheinum1 ;
 
-            auto tmp = py_util.attr("calWeight")(sr_overlap, 0.1);
-            auto w_lr = tmp.cast<py::array_t<float>>();
+            py_model.attr("set")(sr_xheight, sr_xwidth, sr_oriheight, 
+            sr_oriwidth, sr_overlap, sr_height, sr_width, overlap_downedge, overlap_rightedge) ;
+
+            // auto tmp = py_util.attr("calWeight")(sr_overlap, 0.1);
+            // auto w_lr = tmp.cast<py::array_t<float>>();
             
-            auto w_left_right0 = py_util.attr("tile")(w_lr, sr_xheight, 1) ;
-            auto w_left_right = py_util.attr("tile")(w_lr, sr_oriheight, 1) ;
-            auto w_left_right_downedge = py_util.attr("tile")(w_lr, overlap_downedge * sr_scale - sr_overlap, 1) ;
-            auto w_left_right_corner = py_util.attr("tile")(w_lr, sr_overlap, 1) ;
+            // auto w_left_right0 = py_util.attr("tile")(w_lr, sr_xheight, 1) ;
+            // auto w_left_right = py_util.attr("tile")(w_lr, sr_oriheight, 1) ;
+            // auto w_left_right_downedge = py_util.attr("tile")(w_lr, overlap_downedge * sr_scale - sr_overlap, 1) ;
+            // auto w_left_right_corner = py_util.attr("tile")(w_lr, sr_overlap, 1) ;
             
-            auto w_ud = py_util.attr("reshape")(w_lr, sr_overlap, 1)  ;
-            auto w_up_down = py_util.attr("tile")(w_ud, 1, sr_oriwidth) ;
-            auto w_up_down_rightedge = py_util.attr("tile")(w_ud, 1, 
-                                                overlap_rightedge * sr_scale) ;\
+            // auto w_ud = py_util.attr("reshape")(w_lr, sr_overlap, 1)  ;
+            // auto w_up_down = py_util.attr("tile")(w_ud, 1, sr_oriwidth) ;
+            // auto w_up_down_rightedge = py_util.attr("tile")(w_ud, 1, 
+            //                                     overlap_rightedge * sr_scale) ;
 
             for (size_t i = 0; i < dic_len ; i++){
                 // if (i % 10 == 0)
@@ -354,7 +357,7 @@ int main(int argc, char *argv[]){
                 cv::minMaxLoc(cur_img, &min2, &max2);
                 auto tmp = to_py_arr<u_int16_t>(img) ;
                 // std::cout << "[debug : to_py_arr], ori " <<  min2 << ", " << max2 << std::endl ; 
-                auto img_e = py_model.attr("inference")(tmp, xmax, i).cast<py::array_t<float>>();
+                auto img_e = py_model.attr("inference")(tmp, xmax, iii, i, num_row, num_col).cast<py::array_t<float>>();
                 
                 int n_row = i % num_row ;
                 int n_col = i / num_row ; 

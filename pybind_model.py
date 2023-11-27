@@ -4,9 +4,11 @@
 # @FileName:  pybind_model.py
 # @Contact :  lianghao@whu.edu.cn
 
+import os
 import cv2
 import torch
 import numpy as np
+import xml.dom.minidom
 
 import python.utils.utils_sisr as util_sr
 import python.utils.utils_image as util_img
@@ -40,14 +42,49 @@ class Model:
         self.scale = sr_parser.sr_scale
         self.boarder = sr_parser.boarder_handling
 
-        self.res = np.zeros((h * self.scale, w * self.scale, 1), dtype=np.uint16)
-        
+        self.res = np.zeros((h * self.scale, w * self.scale, channel), dtype=np.uint16)
+        self.last_image = None
         print("end initialize [inference model]")
+    
+    def calWeight(self, d, k):
+        '''
+        :param d: 融合重叠部分直径
+        :param k: 融合计算权重参数
+        '''
+        x = np.arange(-d / 2, d / 2)
+        y = 1 / (1 + np.exp(-k * x))
+        return y
+    
+    def set(self, sr_xheight, sr_xwidth, sr_oriheight, 
+            sr_oriwidth, sr_overlap, sr_height, sr_width,
+            overlap_downedge, overlap_rightedge):
         
-    def inference(self, img_lq, xmax, i):
+        self.sr_xheight = sr_xheight
+        self.sr_xwidth = sr_xwidth
+        self.sr_oriheight = sr_oriheight
+        self.sr_oriwidth = sr_oriwidth
+        self.sr_overlap = sr_overlap
+        self.sr_height = sr_height
+        self.sr_width = sr_width
+
+        w_lr = self.calWeight(sr_overlap, 0.1)
+        self.w_left_right0 = np.tile(w_lr, (sr_xheight, 1))
+        self.w_left_right = np.tile(w_lr, (sr_oriheight, 1))
+        self.w_left_right_downedge = np.tile(w_lr, (overlap_downedge * self.scale - sr_overlap, 1))
+        self.w_left_right_corner = np.tile(w_lr, (sr_overlap, 1))
+
+        w_ud = self.calWeight(sr_overlap, 0.1)
+        self.w_ud = np.reshape(w_ud, (sr_overlap, 1))
+        self.w_up_down = np.tile(self.w_ud, (1, sr_oriwidth))
+        self.w_up_down_rightedge = np.tile(self.w_ud, (1, overlap_rightedge * self.scale))
+
+        print("[model-set] finish")
+
+        
+    def inference(self, img_lq, xmax, c, i, num_row, num_col):
         img_lq = img_lq.squeeze()
         # print("[DEBUG] start inference, the shape is ", img_lq.shape, f"py:arr {img_lq.min()}, {img_lq.max()}, mean = {img_lq.mean()}")
-        savemat(f"test/test_{i}.mat", {"data": img_lq})
+        # savemat(f"test/test_{i}.mat", {"data": img_lq})
         
         # previous works
         xmin_lq, xmax_lq = img_lq.min(), img_lq.max()
@@ -75,6 +112,138 @@ class Model:
         img_e = img_e[:, :, 0]
         img_e = np.clip(img_e, xmin_lq, xmax_lq)
         # print("[DEBUG] finish inference, the shape is ", img_e.shape, f"min = {img_e.min()}, max = {img_e.max()},  mean = {img_e.mean()}")
-        savemat(f"test/test_sr{i}.mat", {"data": img_e})
-        return img_e
+        # savemat(f"test/test_sr{i}.mat", {"data": img_e})
+
+        numr = i % num_row
+        numcol = i // num_row
+
+        if numcol == 0:
+            if numr == 0:
+                self.res[:self.sr_xheight, :self.sr_oriwidth, c] = img_e[:, :self.sr_oriwidth]
+            elif numr < num_row - 1:
+                self.res[:self.sr_xheight, (numr * self.sr_oriwidth):(numr * self.sr_oriwidth + self.sr_overlap), c] = np.uint16(
+                    (1 - self.w_left_right0) * self.last_image[:, self.sr_oriwidth:self.sr_xwidth] + self.w_left_right0 * img_e[:, : self.sr_overlap])
+                self.res[:self.sr_xheight, 
+                         (numr * self.sr_oriwidth + self.sr_overlap):(numr + 1) * self.sr_oriwidth, c] = img_e[:, self.sr_overlap:self.sr_oriwidth]
+            elif numr == num_row - 1:
+                self.res[:self.sr_xheight, (numr * self.sr_oriwidth):(numr * self.sr_oriwidth + self.sr_overlap), c] = np.uint16(
+                    (1 - self.w_left_right0) * self.last_image[:, self.sr_oriwidth:self.sr_xwidth] + self.w_left_right0 * img_e[:,
+                                                                                                         :self.sr_overlap]
+                )
+                self.res[:self.sr_xheight, (numr * self.sr_oriwidth + self.sr_overlap):self.sr_width, c] = img_e[:, self.sr_overlap:]
+        
+        elif numcol < num_col - 1:
+            if numr == 0 :
+                patch_up = self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap), :self.sr_oriwidth, c]
+                self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap), :self.sr_oriwidth, c] = np.uint16(
+                            (1 - self.w_up_down) * patch_up + self.w_up_down * img_e[:self.sr_overlap, :self.sr_oriwidth])
+                self.res[(numcol * self.sr_oriheight + self.sr_overlap):(numcol * self.sr_oriheight + self.sr_xheight),
+                        :self.sr_oriwidth, c] = img_e[self.sr_overlap:, :self.sr_oriwidth]
+            
+            elif numr < num_row - 1:
+                self.res[(numcol * self.sr_oriheight + self.sr_overlap):(numcol * self.sr_oriheight + self.sr_xheight),
+                        (numr * self.sr_oriwidth):(numr * self.sr_oriwidth + self.sr_overlap), c] = np.uint16(
+                            (1 - self.w_left_right) * self.last_image[self.sr_overlap:, 
+                                                                      self.sr_oriwidth:] + self.w_left_right * img_e[
+                                                                                                        self.sr_overlap:,
+                                                                                                        :self.sr_overlap])
+                img = img_e[:self.sr_overlap, :self.sr_oriwidth]
+                img[:, :self.sr_overlap] = np.uint16((1 - self.w_left_right_corner) * self.last_image[:self.sr_overlap,
+                                                                                    self.sr_oriwidth:] + self.w_left_right_corner * img_e[
+                                                                                                                          :self.sr_overlap,
+                                                                                                                          :self.sr_overlap])
+                patch_up = self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap),
+                                   (numr * self.sr_oriwidth):(numr * self.sr_oriwidth + self.sr_oriwidth), c]
+                self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap),
+                        (numr * self.sr_oriwidth):(numr * self.sr_oriwidth + self.sr_oriwidth), c] = np.uint16(
+                            (1 - self.w_up_down) * patch_up + self.w_up_down * img)
+                self.res[(numcol * self.sr_oriheight + self.sr_overlap):(numcol * self.sr_oriheight + self.sr_xheight),
+                        (numr * self.sr_oriwidth + self.sr_overlap):(numr * self.sr_oriwidth + self.sr_oriwidth), c] = img_e[self.sr_overlap:,
+                                                                                                self.sr_overlap:self.sr_oriwidth]
+            elif numr == num_row - 1:
+                self.res[(numcol * self.sr_oriheight + self.sr_overlap):(numcol * self.sr_oriheight + self.sr_xheight),
+                        (numr * self.sr_oriwidth):(numr * self.sr_oriwidth + self.sr_overlap), c] = np.uint16(
+                            (1 - self.w_left_right) * self.last_image[self.sr_overlap:, 
+                                                                      self.sr_oriwidth:] + self.w_left_right * img_e[
+                                                                                                        self.sr_overlap:,
+                                                                                                        :self.sr_overlap])
+                img = img_e[:self.sr_overlap, :]
+                img[:, :self.sr_overlap] = np.uint16((1 - self.w_left_right_corner) * self.last_image[:self.sr_overlap,
+                                                            self.sr_oriwidth:] + self.w_left_right_corner * img_e[:self.sr_overlap,
+                                                                                                                  :self.sr_overlap])
+                patch_up = self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap),
+                                   (numr * self.sr_oriwidth):self.sr_width, c]
+                self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap),
+                        (numr * self.sr_oriwidth):self.sr_width, c] = np.uint16(
+                            (1 - self.w_up_down_rightedge) * patch_up + self.w_up_down_rightedge * img)
+                self.res[(numcol * self.sr_oriheight + self.sr_overlap):(numcol * self.sr_oriheight + self.sr_xheight),
+                        (numr * self.sr_oriwidth + self.sr_overlap):self.sr_width, c] = img_e[self.sr_overlap:, self.sr_overlap:]
+            
+        elif numcol == numcol - 1:
+            if numr == 0:
+                patch_up = self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap), :self.sr_oriwidth]
+                self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap), :self.sr_oriwidth, c] = np.uint16(
+                            (1 - self.w_up_down) * patch_up + self.w_up_down * img_e[:self.sr_overlap, :self.sr_oriwidth])
+                self.res[(numcol * self.sr_oriheight + self.sr_overlap):self.sr_height, :self.sr_oriwidth, c] = img_e[self.sr_overlap:,
+                                                                                             :self.sr_oriwidth]
+            elif numr < num_row - 1:
+                self.res[(numcol * self.sr_oriheight + self.sr_overlap):self.sr_height,
+                        (numr * self.sr_oriwidth):(numr * self.sr_oriwidth + self.sr_overlap), c] = np.uint16(
+                            (1 - self.w_left_right_downedge) * self.last_image[self.sr_overlap:,
+                                    self.sr_oriwidth:] + self.w_left_right_downedge * img_e[self.sr_overlap:,
+                                                                                                  :self.sr_overlap]
+                        )
+                img = img_e[:self.sr_overlap, :self.sr_oriwidth]
+                img[:, :self.sr_overlap] = np.uint16((1 - self.w_left_right_corner) * self.last_image[:self.sr_overlap,
+                                                    self.sr_oriwidth:] + self.w_left_right_corner * img_e[:self.sr_overlap,
+                                                                                                          :self.sr_overlap])
+                patch_up = self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap),
+                                   (numr * self.sr_oriwidth):(numr * self.sr_oriwidth + self.sr_oriwidth), c]
+                self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap),
+                        (numr * self.sr_oriwidth):(numr * self.sr_oriwidth + self.sr_oriwidth), c] = np.uint16(
+                            (1 - self.w_up_down) * patch_up + self.w_up_down * img)
+                
+                self.res[(numcol * self.sr_oriheight + self.sr_overlap):self.sr_height,
+                        (numr * self.sr_oriwidth + self.sr_overlap):
+                        (numr * self.sr_oriwidth + self.sr_oriwidth), c] = img_e[self.sr_overlap:,
+                                                                            self.sr_overlap:self.sr_oriwidth]
+            elif numr == num_row - 1:
+                self.res[(numcol * self.sr_oriheight + self.sr_overlap):self.sr_height,
+                        (numr * self.sr_oriwidth):(numr * self.sr_oriwidth + self.sr_overlap)] = np.uint16(
+                            (1 - self.w_left_right_downedge) * self.last_image[self.sr_overlap:,
+                                        self.sr_oriwidth:] + self.w_left_right_downedge * img_e[self.sr_overlap:,
+                                                                                                  :self.sr_overlap]
+                        )
+                img = img_e[:self.sr_overlap, :]
+                img[:, :self.sr_overlap] = np.uint16((1 - self.w_left_right_corner) * self.last_image[:self.sr_overlap,
+                                            self.sr_oriwidth:] + self.w_left_right_corner * img_e[:self.sr_overlap,
+                                                                                                   :self.sr_overlap])
+                patch_up = self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap),
+                                   (numr * self.sr_oriwidth):self.sr_width, c]
+                self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap),
+                        (numr * self.sr_oriwidth):self.sr_width, c] = np.uint16(
+                            (1 - self.w_up_down_rightedge) * patch_up + self.w_up_down_rightedge * img)
+                self.res[(numcol * self.sr_oriheight + self.sr_overlap):self.sr_height,
+                        (numr * self.sr_oriwidth + self.sr_overlap):self.sr_width] = img_e[self.sr_overlap:, self.sr_overlap:]
+        self.last_image = img_e
+
+        savemat(f"test/test_sr{i}.mat", {"data": self.res})
     
+    def save_tiff(self, path):
+        self.res = self.res.squeeze()
+        util_img.savetiff(path, self.res)
+        del self.res
+
+    def finish(self, filepath_abs_SRPAN):
+        doc = xml.dom.minidom.Document()
+        item = doc.createElement('DOCUMENT')
+        item.setAttribute('content_method', "full")
+        doc.appendChild(item)
+        flag = doc.createElement('flag')
+        flag_text = doc.createTextNode('over')
+        flag.appendChild(flag_text)
+        item.appendChild(flag)
+        xml_save_path = os.path.join(filepath_abs_SRPAN, 'flag.xml')
+        f = open(xml_save_path, 'w')
+        doc.writexml(f, indent='\t', newl='\n', addindent='\t', encoding='utf-8')
+        f.close()
