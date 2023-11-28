@@ -10,6 +10,16 @@ sudo apt-get install python3.8-dev
 # 编译命令
 g++ main.cpp -o main -std=c++11 -fPIC `python3 -m pybind11 --includes` `pkg-config --cflags --libs opencv4` -DPYTHON_API -lpython3.8
 ```
+### 运行
+1. 进入python虚拟环境
+2. 编译main.cpp
+```shell
+g++ main.cpp -o main -std=c++11 -fPIC `python3 -m pybind11 --includes` `pkg-config --cflags --libs opencv4` -DPYTHON_API -lpython3.8
+```
+3. 运行
+```shell
+./main
+```
 
 ### cpp调用python
 
@@ -85,3 +95,4 @@ conda install libffi==3.3 # from osgeo import gdal导入错误，No module named
 ```
 
 2. PyTorch版本要与CUDA保持一致
+

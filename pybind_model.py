@@ -230,7 +230,7 @@ class Model:
         # savemat(f"test/test_mage{i}.mat", {"data": self.res})
     
     def save_tiff(self, path):
-        self.res = self.res.squeeze()
+        # self.res = self.res.squeeze()
         util_img.savetiff(path, self.res)
         del self.res
 

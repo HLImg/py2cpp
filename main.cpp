@@ -107,7 +107,7 @@ int main(int argc, char *argv[]){
     std::cout << "input mux path is " << inp_mux_path << std::endl ;
     std::cout << "crop setting [xheight]=" << xheight << " [xwidth]=" << xwidth << std::endl;
 
-    for (int ii = 1; ii < 2 ; ii++){
+    for (int ii = 0; ii < 2 ; ii++){
         std::string inp_data;
         if (ii == 0){
             inp_data = inp_pan_path ;
