@@ -33,7 +33,7 @@ class XMLParserInput:
         SRPAN_tmp = self.root0.getElementsByTagName('output_pan')
         self.out_pan = SRPAN_tmp[0].firstChild.data
         
-        _, tempfilename_abs_SRPAN = os.path.split(self.out_pan)
+        self.filepath_abs_SRPAN, tempfilename_abs_SRPAN = os.path.split(self.out_pan)
         self.filename_abs_name_SRPAN, self.extension_abs_SRPAN = os.path.splitext(tempfilename_abs_SRPAN)
         
         SRMUX_tmp = self.root0.getElementsByTagName('output_mux')
@@ -49,6 +49,20 @@ class XMLParserInput:
             util_img.savetiff(self.output[index], mage)
         else:
             util_img.savetiff(self.output[index], mage)
+    
+    def finish(self):
+        doc = xml.dom.minidom.Document()
+        item = doc.createElement('DOCUMENT')
+        item.setAttribute('content_method', "full")
+        doc.appendChild(item)
+        flag = doc.createElement('flag')
+        flag_text = doc.createTextNode('over')
+        flag.appendChild(flag_text)
+        item.appendChild(flag)
+        xml_save_path = os.path.join(self.filepath_abs_SRPAN, 'flag.xml')
+        f = open(xml_save_path, 'w')
+        doc.writexml(f, indent='\t', newl='\n', addindent='\t', encoding='utf-8')
+        f.close()
         
         
 class XMLParserSR:

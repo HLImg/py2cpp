@@ -19,91 +19,6 @@
 namespace py = pybind11 ;
 
 
-void statis(const cv::Mat& img){
-    double mu = 0 ;
-    double xmax = 0 ;
-    double xmin = 20000 ;
-    double count = 0 ;
-    for (size_t i = 0 ; i < img.rows ; i++)
-        for (size_t j = 0 ; j < img.cols ; j++){
-            int pixel = img.at<uint16_t>(i, j) ;
-            if (pixel < xmin)
-                xmin = pixel ;
-            if (pixel > xmax)
-                xmax = pixel ;
-            mu = mu + pixel ;
-            count = count + 1;
-        }
-    
-    std::cout << "hw1 : xmin = [" << xmin << "] , xmax = [" << xmax << "], mean = [" << mu / count << " ]" << std::endl ;
-}
-
-void statis_mul(const cv::Mat& img){
-    double mu = 0 ;
-    int xmax = 0 ;
-    int xmin = 20000 ;
-    double count = 0 ;
-    std::cout << "mul-statis-c" << img.channels() << std::endl ;
-    for (size_t i = 0 ; i < img.rows ; i++)
-        for (size_t j = 0 ; j < img.cols ; j++)
-             {cv::Vec4w pixel = img.at<cv::Vec4w>(i, j);  
-            for (size_t c = 0 ; c < img.channels() ; c++){
-                if (pixel[c] < xmin)
-                xmin = pixel[c] ;
-                if (pixel[c] > xmax)
-                xmax = pixel[c] ;
-             mu = mu + pixel[c] ;
-            count = count + 1;
-        }
-             }
-    
-    std::cout << "hwc : xmin = [" << xmin << "] , xmax = [" << xmax << "], mean = [" << mu / count << " ]" << std::endl ;
-}
-
-/*
-cv::Mat np2mat_u16(py::array_t<uint16_t>& img){
-    py::buffer_info buf_info = img.request();
-    size_t h, w, channels ;
-    h = buf_info.shape[0] ;
-    w = buf_info.shape[1] ;
-    channels = buf_info.shape[2] ;
-    cv::Mat flat_mat(h * w * channels, 1, CV_16UC1, img.mutable_data());
-
-    // 重塑flat_mat以匹配原始图像的维度和通道
-    cv::Mat reshaped_mat = flat_mat.reshape(channels, h);
-    return reshaped_mat ;
-}
-cv::Mat np2mat_mul(py::array_t<uint16_t>& img){
-    py::buffer_info buf_info = img.request();
-    size_t h, w, channels ;
-    h = buf_info.shape[0] ;
-    w = buf_info.shape[1] ;
-    channels = buf_info.shape[2] ;
-
-    // 重塑flat_mat以匹配原始图像的维度和通道
-    cv::Mat reshaped_mat(h, w, CV_16UC4, img.mutable_data());
-
-    std::cout << "converted  " << reshaped_mat.rows <<"  " <<reshaped_mat.cols << "   "<< reshaped_mat.channels() << std::endl;
-    return reshaped_mat ;
-}
-
-template <typename T>
-py::array_t<T> to_py_arr(const cv::Mat& img) {
-    if (img.channels() == 1) {
-        py::array_t<T> py_arr = py::array_t<T>({img.rows, img.cols});
-        memcpy(py_arr.request().ptr, img.ptr(),
-               sizeof(T) * img.total());
-        return py_arr;
-    } else {
-        py::array_t<T> py_arr =
-                py::array_t<T>({img.rows, img.cols, img.channels()});
-        memcpy(py_arr.request().ptr, img.ptr(),
-               sizeof(T) * img.total());
-        return py_arr;
-    }
-}
-*/
-
 cv::Mat np2mat_u16(py::array_t<u_int16_t>& img){
     py::buffer_info buf_info = img.request();
     size_t h, w, channels ;
@@ -216,15 +131,12 @@ int main(int argc, char *argv[]){
         py::object py_model = py_module_model.attr("Model")(k, sr_args, inp_h, inp_w, num_band);
 
         for (int iii = 0 ; iii < num_band; iii++){
-            std::cout << "start band  " << iii + 1 << std::endl ; 
+            std::cout << ii <<" - start band  " << iii + 1 << std::endl ; 
             cv::Mat cur_img = cv::Mat::zeros(mat_hwc.rows, mat_hwc.cols, CV_16UC1);
 
             // cv::Mat cur_img(mat_hwc.rows, mat_hwc.cols, CV_16UC1);
             int from_to[] = { iii, 0 };
             cv::mixChannels(&mat_hwc , 1, &cur_img, 1, from_to, 1); 
-
-            std::cout << "cur-img - band : " << iii + 1 << " / " << num_band << std::endl ;
-            // statis(cur_img) ;
 
             size_t height = cur_img.rows ;
             size_t width = cur_img.cols ;
@@ -264,13 +176,13 @@ int main(int argc, char *argv[]){
                     
                     i = i + 1 ;
                     smalldata_tensor[i] = crop_img.clone();
-                    // statis(smalldata_tensor[i]) ;
+
                     if (w == max_widnum - 1 && width - max_widnum * oriwidth > 0){
                         i = i + 1 ;
                         cv::Rect roi_r(oriwidth * (w + 1), oriheight * h, width - oriwidth * (w + 1), xheight);
                         cv::Mat crop_img_r = cur_img(roi_r);
                         smalldata_tensor[i] = crop_img_r.clone();
-                        // statis(smalldata_tensor[i]) ;
+
                         overlap_rightedge = width - oriwidth * (w + 1);  
                     }
                 }
@@ -283,14 +195,14 @@ int main(int argc, char *argv[]){
                     cv::Mat crop_img = cur_img(roi);
                     overlap_downedge = height - (oriheight * max_heinum);
                     smalldata_tensor[i] = crop_img.clone();
-                    // statis(smalldata_tensor[i]) ;
+
                     if (w == max_widnum - 1 &&  width - max_widnum * oriwidth > 0){
                         i = i + 1 ;
                         cv::Rect roi_r(oriwidth * (w + 1), oriheight * max_heinum, 
                                         width - oriwidth * (w + 1), height - oriheight * max_heinum) ;
                         cv::Mat crop_img_r = cur_img(roi_r);
                         smalldata_tensor[i] = crop_img_r.clone();
-                        // statis(smalldata_tensor[i]) ;
+
                         double min2;
                         double max2 = 0 ;
                         cv::minMaxLoc(smalldata_tensor[i], &min2, &max2);
@@ -353,21 +265,34 @@ int main(int argc, char *argv[]){
                 double min2;
                 double max2 = 0 ;
                 auto img = smalldata_tensor[i + 1] ;
-                // statis(img) ;
+
                 cv::minMaxLoc(cur_img, &min2, &max2);
                 auto tmp = to_py_arr<u_int16_t>(img) ;
                 // std::cout << "[debug : to_py_arr], ori " <<  min2 << ", " << max2 << std::endl ; 
                 auto img_e = py_model.attr("inference")(tmp, xmax, iii, i, num_row, num_col).cast<py::array_t<float>>();
-                
-                int n_row = i % num_row ;
-                int n_col = i / num_row ; 
-
-
             }
+
         }
-        
+
+        mat_hwc.release() ;
+
+        std::string path ;
+        if (ii == 0){
+            path = inp_args.attr("out_pan").cast<std::string>() ;
+        }else{
+            path = inp_args.attr("out_mux").cast<std::string>() ;
+           
+        }
+
+        py_model.attr("save_tiff")(path) ;
+        std::cout << "###################################" << std::endl ;
+        std::cout << ii <<"  saved on "<< path << std::endl ;
+        std::cout << "###################################" << std::endl ;
     }
 
+    inp_args.attr("finish")() ;
+    std::cout << "###################################" << std::endl ;
+    std::cout << "All Finish" << std::endl ;
     return 0 ;
 }
 

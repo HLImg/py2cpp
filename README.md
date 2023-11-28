@@ -70,6 +70,7 @@ int main(){
 2. [模型推理-Python](pybind_model.py): 使用python调用torch进行推理 ()
 3. [图像切割部分-C++](main.cpp) (Nov 20 23:17)
 4. [类型转换出现问题，pybind -> cv::mat](./inference.png) (Nov 23 15:53) 
+5. 基本完成 (Nov 28 15:13)
 
 ![](./inference.png)
 

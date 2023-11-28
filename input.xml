@@ -3,7 +3,7 @@
   <all_path>
   <input_pan>/data/dataset/project/1-PAN.TIF</input_pan>
   <input_mux>/data/dataset/project/1-MUL.TIF</input_mux>
-  <output_pan>/home/ZW/tmp/SV2-01_PMS_E41.9_N45.0_20220824_L1A0000237415-PAN_0.175_old.tiff</output_pan>
-  <output_mux>/home/ZW/tmp/SV2-01_PMS_E41.9_N45.0_20220824_L1A0000237415-MUX_0.175_old.tiff</output_mux>
+  <output_pan>/data/dataset/project/res/PAN_0.175_old.tiff</output_pan>
+  <output_mux>/data/dataset/project/res/MUX_0.175_old.tiff</output_mux>
   </all_path>
 </catalog>

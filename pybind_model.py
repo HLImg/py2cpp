@@ -179,9 +179,9 @@ class Model:
                 self.res[(numcol * self.sr_oriheight + self.sr_overlap):(numcol * self.sr_oriheight + self.sr_xheight),
                         (numr * self.sr_oriwidth + self.sr_overlap):self.sr_width, c] = img_e[self.sr_overlap:, self.sr_overlap:]
             
-        elif numcol == numcol - 1:
+        elif numcol == num_col - 1:
             if numr == 0:
-                patch_up = self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap), :self.sr_oriwidth]
+                patch_up = self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap), :self.sr_oriwidth, c]
                 self.res[(numcol * self.sr_oriheight):(numcol * self.sr_oriheight + self.sr_overlap), :self.sr_oriwidth, c] = np.uint16(
                             (1 - self.w_up_down) * patch_up + self.w_up_down * img_e[:self.sr_overlap, :self.sr_oriwidth])
                 self.res[(numcol * self.sr_oriheight + self.sr_overlap):self.sr_height, :self.sr_oriwidth, c] = img_e[self.sr_overlap:,
@@ -209,7 +209,7 @@ class Model:
                                                                             self.sr_overlap:self.sr_oriwidth]
             elif numr == num_row - 1:
                 self.res[(numcol * self.sr_oriheight + self.sr_overlap):self.sr_height,
-                        (numr * self.sr_oriwidth):(numr * self.sr_oriwidth + self.sr_overlap)] = np.uint16(
+                        (numr * self.sr_oriwidth):(numr * self.sr_oriwidth + self.sr_overlap), c] = np.uint16(
                             (1 - self.w_left_right_downedge) * self.last_image[self.sr_overlap:,
                                         self.sr_oriwidth:] + self.w_left_right_downedge * img_e[self.sr_overlap:,
                                                                                                   :self.sr_overlap]
@@ -224,26 +224,14 @@ class Model:
                         (numr * self.sr_oriwidth):self.sr_width, c] = np.uint16(
                             (1 - self.w_up_down_rightedge) * patch_up + self.w_up_down_rightedge * img)
                 self.res[(numcol * self.sr_oriheight + self.sr_overlap):self.sr_height,
-                        (numr * self.sr_oriwidth + self.sr_overlap):self.sr_width] = img_e[self.sr_overlap:, self.sr_overlap:]
+                        (numr * self.sr_oriwidth + self.sr_overlap):self.sr_width, c] = img_e[self.sr_overlap:, self.sr_overlap:]
         self.last_image = img_e
 
-        savemat(f"test/test_sr{i}.mat", {"data": self.res})
+        # savemat(f"test/test_mage{i}.mat", {"data": self.res})
     
     def save_tiff(self, path):
         self.res = self.res.squeeze()
         util_img.savetiff(path, self.res)
         del self.res
 
-    def finish(self, filepath_abs_SRPAN):
-        doc = xml.dom.minidom.Document()
-        item = doc.createElement('DOCUMENT')
-        item.setAttribute('content_method', "full")
-        doc.appendChild(item)
-        flag = doc.createElement('flag')
-        flag_text = doc.createTextNode('over')
-        flag.appendChild(flag_text)
-        item.appendChild(flag)
-        xml_save_path = os.path.join(filepath_abs_SRPAN, 'flag.xml')
-        f = open(xml_save_path, 'w')
-        doc.writexml(f, indent='\t', newl='\n', addindent='\t', encoding='utf-8')
-        f.close()
+    
