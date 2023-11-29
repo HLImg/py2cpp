@@ -6,6 +6,7 @@
 
 import gradio
 import util_sr
+import util_metric
 from gradio.components import Image
 
 # 主题设置
@@ -17,9 +18,7 @@ image_adaptive_style = {"max-width": "100%", "max-height": "100%"}
 # 读取css文件
 css_file = 'css/style.css'
 
-alpha_label = "&#945; (alpha)"  # 使用 HTML 实体
-beta_label = "&#946; (beta)"    # 使用 HTML 实体
-gamma_label = "&#947; (gamma)"  # 使用 HTML 实体
+
 
 with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
     # gradio.Markdown(f'<style>{custom_css}</style>')
@@ -59,11 +58,11 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
                     
                     with gradio.Row():
                         with gradio.Column():
-                            ps_test_model_alpha = gradio.Number(label="a", show_label=True)
+                            ps_test_model_alpha = gradio.Number(label="alpha", show_label=True)
                         with gradio.Column():
-                            ps_test_model_beta = gradio.Number(label="b", show_label=True)
+                            ps_test_model_beta = gradio.Number(label="beta", show_label=True)
                         with gradio.Column():
-                            ps_test_model_gamma = gradio.Number(label="g", show_label=True)
+                            ps_test_model_gamma = gradio.Number(label="gamma", show_label=True)
                     
                     ps_test_save_path = gradio.Text(lines=1, label="融合结果保存地址", show_label=True)
                 
@@ -123,7 +122,23 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
 
 
         with gradio.TabItem('数据定量分析', elem_id="function-tab-3"):
-            pass
+            with gradio.Row():
+                metric_lq_id_3 = gradio.Image(sources='upload', label='待分析图像', show_label=True)
+                metric_gt_id_3 = gradio.Image(sources='upload', label='真值图像', show_label=True)
+            with gradio.Row():
+                # gradio.Markdown('# <center style="font-family: Arial; font-size: 16px;">定量分析指标</center>')
+                with gradio.Column():
+                    metric_inp = gradio.CheckboxGroup(["PSNR ", "RMSE ", "SSIM ", 
+                                                        "ERGAS", "QNR  ", "平均梯度"], 
+                                                        label="定量分析指标")
+                    metric_button = gradio.Button("开始分析")
+                with gradio.Column():
+                    metric_out = gradio.DataFrame(label="定量分析结果",
+                                                   headers=["method", "value"],
+                                                   datatype=["str", "str"], 
+                                                   interactive=False, wrap=True)
+                
+                metric_button.click(util_metric.metric_interface, inputs=metric_inp, outputs=metric_out)
         with gradio.TabItem('关于', elem_id="function-tab-4"):
             gradio.Markdown('## 介绍')
 
