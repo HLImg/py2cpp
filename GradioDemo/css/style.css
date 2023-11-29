@@ -1,0 +1,32 @@
+body {
+    /*background-color: #f2f2f2;*/
+    background: linear-gradient(45deg, #5f9ea0, #2e8b57);
+    font-family: 'MesloLGL Nerd Font Mono', sans-serif;
+    color: white;
+}
+
+input, textarea {
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* 去除脚注，感谢Gradio */
+footer {
+    display: none;
+    visibility: hidden;
+}
+
+.show-api, .built-with {
+    display: none;
+}
+
+/* TAB 样式 */
+.tab-nav.scroll-hide {
+    display: flex;
+    justify-content: space-around;  /* 按钮之间平均分配空间 */
+}
+.tab-nav.scroll-hide button[id^='function-tab-'] {
+    flex-grow: 1;  /* 设置按钮铺满空间 */
+    text-align: center;
+    font-family: Arial;  /* 指定字体 */
+    font-size: 18px;  /* 指定字体大小 */
+}
