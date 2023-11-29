@@ -69,6 +69,7 @@ int main(){
 1. [XML文件解析-Python](./pybind_xml.py)：输入文件XML解析和配置文件XML解析 (Nov 19 22：51 解析成功)
 2. [模型推理-Python](pybind_model.py): 使用python调用torch进行推理 ()
 3. [图像切割部分-C++](main.cpp) (Nov 20 23:17)
+4. pybind和opencv数据转换出现错误，导致数据出现NAN （Nov 26）
 
 ### 其他
 
