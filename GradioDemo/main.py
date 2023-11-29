@@ -126,7 +126,6 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
                 metric_lq_id_3 = gradio.Image(sources='upload', label='待分析图像', show_label=True)
                 metric_gt_id_3 = gradio.Image(sources='upload', label='真值图像', show_label=True)
             with gradio.Row():
-                # gradio.Markdown('# <center style="font-family: Arial; font-size: 16px;">定量分析指标</center>')
                 with gradio.Column():
                     metric_inp = gradio.CheckboxGroup(["PSNR ", "RMSE ", "SSIM ", 
                                                         "ERGAS", "QNR  ", "平均梯度"], 
