@@ -5,6 +5,7 @@
 # @Email   : lianghao@whu.edu.cn
 
 import gradio
+import util_ps
 import util_sr
 import util_metric
 from gradio.components import Image
