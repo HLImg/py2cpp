@@ -125,6 +125,11 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
                     sr_train_save_dir = gradio.Text(lines=1, label='模型保存目录', show_label=True)
                     sr_train_button = gradio.Button('开始训练')
                     sr_train_process_bar = gradio.Textbox(label='训练进度')
+                    sr_train_button.click(fn=util_sr.sr_train, 
+                                          inputs=[sr_msi_id_2, sr_pan_id_2, 
+                                                  sr_train_method, sr_train_img_type, 
+                                                  sr_train_lr, sr_train_save_freq, sr_train_save_dir],
+                                          outputs=sr_train_process_bar)
 
                 with gradio.Tab('测试'):
                     with gradio.Row():
@@ -138,7 +143,8 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
 
                     sr_button_test = gradio.Button('开始超分')
                     sr_button_test.click(fn=util_sr.sr_test_interface,
-                                         inputs=[sr_pan_id_2, sr_scale],
+                                         inputs=[sr_msi_id_2, sr_pan_id_2, sr_test_method,
+                                                 sr_test_img_type, sr_nn_ckpt_path, sr_scale],
                                          outputs=[sr_res_id_2])
 
 

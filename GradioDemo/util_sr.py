@@ -23,16 +23,43 @@ def sr_generate_image(msi, pan, kernel_size, kernel_std, noise, jpeg, output_pat
     for i in progress.tqdm(range(100)):
         time.sleep(1)
     
-
-
-def sr_test_interface(image, scale=2, ctype="all"):
-    if ctype == '全色图像':
-        ctype = 'pan'
-    elif ctype == '多光谱图像':
-        ctype = 'msi'
+def sr_train(msi, pan, method, img_type, lr, save_freq, save_dir, progress=gradio.Progress()):
+    if img_type == '全色图像':
+        lq = pan
+    elif img_type == '多光谱图像':
+        lq = msi
     
-    h, w = image.shape[:2]
-    return cv.resize(image, (w * scale, h * scale))
+    if method == '卷积神经网络':
+        use_method = 'cnn'
+    elif method == '生成对抗网络':
+        use_method = 'gan'
+    else:
+        use_method = 'cubic'
+    
+    save_freq = int(save_freq)
+    
+    
+    import time
+    for i in progress.tqdm(range(100)):
+        time.sleep(1)
+
+def sr_test_interface(msi, pan, method, img_type, ckpt_path, sr_scale):
+    if img_type == '全色图像':
+        lq = pan
+    elif img_type == '多光谱图像':
+        lq = msi
+    
+    if method == '卷积神经网络':
+        use_method = 'cnn'
+    elif method == '生成对抗网络':
+        use_method = 'gan'
+    else:
+        use_method = 'cubic'
+    
+    sr_scale = int(sr_scale)
+    
+    return lq[::2, ::2, :3]
+    
     
 
 
