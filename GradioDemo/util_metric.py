@@ -7,11 +7,21 @@
 
 import random
 
-def metric_interface(selected_metrics):
-    
-    results = []
+from method.metric import *
+   
+metrices = {
+    'psnr': cal_psnr,
+    'ssim': cal_ssim,
+    'rmse': cal_rmse,
+    'ergas': cal_ergas,
+    'avg_grad': cal_avg_grad
+}
 
+def metric_interface(im_lq, im_gt, selected_metrics):
+    results = []
+    
     for metric in selected_metrics:
-        results.append([metric, round(random.uniform(0, 100), 2)])
+        metric_res = metrices[metric.lower()](im_lq, im_gt)
+        results.append([metric, metric_res])
     
     return results

@@ -128,8 +128,8 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
                 metric_gt_id_3 = gradio.Image(sources='upload', label='真值图像', show_label=True)
             with gradio.Row():
                 with gradio.Column():
-                    metric_inp = gradio.CheckboxGroup(["PSNR ", "RMSE ", "SSIM ", 
-                                                        "ERGAS", "QNR  ", "平均梯度"], 
+                    metric_inp = gradio.CheckboxGroup(["PSNR", "RMSE", "SSIM", 
+                                                        "ERGAS", "QNR", "AVG_GRAD"], 
                                                         label="定量分析指标")
                     metric_button = gradio.Button("开始分析")
                 with gradio.Column():
@@ -138,7 +138,7 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
                                                    datatype=["str", "str"], 
                                                    interactive=False, wrap=True)
                 
-                metric_button.click(util_metric.metric_interface, inputs=metric_inp, outputs=metric_out)
+                metric_button.click(util_metric.metric_interface, inputs=[metric_lq_id_3, metric_gt_id_3, metric_inp], outputs=metric_out)
         with gradio.TabItem('关于', elem_id="function-tab-4"):
             gradio.Markdown('## 介绍')
 
