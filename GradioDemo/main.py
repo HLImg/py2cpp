@@ -8,6 +8,7 @@ import gradio
 import util_ps
 import util_sr
 import util_metric
+import util_common
 from gradio.components import Image
 
 # 主题设置
@@ -18,8 +19,6 @@ image_adaptive_style = {"max-width": "100%", "max-height": "100%"}
 
 # 读取css文件
 css_file = 'css/style.css'
-
-
 
 with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
     # gradio.Markdown(f'<style>{custom_css}</style>')
@@ -75,8 +74,18 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
 
         with gradio.TabItem('图像超分辨率', elem_id="function-tab-2"):
             with gradio.Row():
-                sr_msi_id_2 = gradio.Image(sources='upload', label='多光谱图像', show_label=True)
-                sr_pan_id_2 = gradio.Image(sources='upload', label='全色图像', show_label=True)
+                with gradio.Column():
+                    sr_msi_upload = gradio.UploadButton(label="上传多光谱图像")
+                    sr_msi_id_show = gradio.Image(label='多光谱图像', show_label=True, visible=True)
+                    sr_msi_id_2 = gradio.Image(label='多光谱图像', show_label=True, image_mode='RGBA', visible=False)
+                    sr_msi_upload.upload(util_common.upload_msi, sr_msi_upload, outputs=[sr_msi_id_show, sr_msi_id_2])
+
+                
+                with gradio.Column():
+                    sr_pan_upload = gradio.UploadButton(label="上传全色图像")
+                    sr_pan_id_2 = gradio.Image(label='全色图像', show_label=True, visible=True)
+                    sr_pan_upload.upload(util_common.upload_pan, sr_pan_upload, sr_pan_id_2)
+                    
             with gradio.Row():
                 sr_res_id_2 = Image(show_label=True, label='超分结果')
             with gradio.Row():
@@ -88,6 +97,17 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
                     sr_data_output_dir = gradio.Text(lines=1, label='输出路径', show_label=True, show_copy_button=True)
                     sr_data_gen_button = gradio.Button('开始生成')
                     sr_data_process_bar = gradio.Textbox(label='数据生成进度', show_label=True)
+                    
+                    # button
+                    
+                    sr_data_gen_button.click(fn=util_sr.sr_generate_image, 
+                                             inputs=[sr_msi_id_2, sr_pan_id_2, 
+                                                     sr_data_blur_kernel_size, 
+                                                     sr_data_blur_kernel_sigma,
+                                                     sr_data_noise_level,
+                                                     sr_data_jpeg_level,
+                                                     sr_data_output_dir], outputs=sr_data_process_bar)
+                    
                 with gradio.Tab('训练'):
                     with gradio.Row():
                         with gradio.Column():

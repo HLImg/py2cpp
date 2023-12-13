@@ -8,6 +8,7 @@
 import random
 
 from method.metric import *
+
    
 metrices = {
     'psnr': cal_psnr,

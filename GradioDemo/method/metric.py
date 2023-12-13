@@ -8,6 +8,8 @@ import numpy as np
 import scipy.ndimage
 import imgvision as iv
 
+from skimage.metrics import peak_signal_noise_ratio as cal_psnr
+
 def calculate_image_gradient(image):
     # 计算水平和垂直方向上的梯度
     gradient_x = scipy.ndimage.sobel(image, axis=0, mode='constant')
@@ -19,9 +21,9 @@ def calculate_image_gradient(image):
     # 返回平均梯度
     return np.mean(magnitude)
 
-def cal_psnr(lq, hq):
-    metric = iv.spectra_metric(lq, hq)
-    return metric.PSNR()
+# def cal_psnr(lq, hq):
+#     metric = iv.spectra_metric(lq, hq)
+#     return metric.PSNR()
 
 def cal_ssim(lq, hq):
     metric = iv.spectra_metric(lq, hq)
