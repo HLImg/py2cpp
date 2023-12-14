@@ -26,10 +26,22 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
     with gradio.Tabs():
         with gradio.TabItem('全色多光谱图像融合', elem_id="function-tab-1"):
             with gradio.Row():
-                ps_msi_id_1 = gradio.Image(sources='upload', label="多光谱图像", show_label=True)
-                ps_pan_id_1 = gradio.Image(sources='upload', label="全色图像", show_label=True)
+                with gradio.Column():
+                    ps_msi_upload = gradio.UploadButton(label="上传多光谱图像")
+                    ps_msi_id_show = gradio.Image(label='多光谱图像', show_label=True, visible=True)
+                    ps_msi_id_1 = gradio.File(visible=False)
+                    ps_msi_upload.upload(util_common.upload_tif, ps_msi_upload, outputs=[ps_msi_id_show, ps_msi_id_1])
+
+                with gradio.Column():
+                    ps_pan_upload = gradio.UploadButton(label="上传全色图像")
+                    ps_pan_id_show = gradio.Image(label='全色图像', show_label=True, visible=True)
+                    ps_pan_id_1 = gradio.File(visible=False)
+                    ps_pan_upload.upload(util_common.upload_tif, ps_pan_upload, outputs=[ps_pan_id_show, ps_pan_id_1])
+
             with gradio.Row():
-                ps_res_id_1 = gradio.Image(label='融合结果', show_label=True)
+                ps_res_id_show = gradio.Image(show_label=True, label='融合结果')
+                ps_res_id_1 = gradio.File(label="融合结果", height=0.2, min_width=10, scale=0.2, interactive=False)
+                
             with gradio.Row():
                 with gradio.Tab("数据库"):
                     ps_data_blur_kernel_size = gradio.Slider(0, 31, step=1, label="模糊核尺寸")
@@ -66,7 +78,7 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
                         with gradio.Column():
                             ps_test_model_gamma = gradio.Number(label="gamma", show_label=True)
                     
-                    ps_test_save_path = gradio.Text(lines=1, label="融合结果保存地址", show_label=True)
+                    # ps_test_save_path = gradio.Text(lines=1, label="融合结果保存地址", show_label=True)
                 
                     ps_button_test = gradio.Button('开始融合')
         
