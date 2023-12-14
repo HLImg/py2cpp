@@ -54,7 +54,9 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
                 with gradio.Tab("测试"):
                     ps_test_method = gradio.Dropdown(choices=['模型类方法', '卷积神经网络'],
                                                           label="选择图像融合方法")
-                    ps_nn_ckpt_path = gradio.Text(lines=1, label='预训练模型地址', show_copy_button=True)
+                    ps_nn_ckpt_path = gradio.File()
+                    upload_ps_ckpt_button = gradio.UploadButton("点击上传模型参数文件")
+                    upload_ps_ckpt_button.upload(fn=util_common.upload_ckpt, inputs=upload_ps_ckpt_button, outputs=ps_nn_ckpt_path)
                     
                     with gradio.Row():
                         with gradio.Column():
@@ -77,17 +79,19 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
                 with gradio.Column():
                     sr_msi_upload = gradio.UploadButton(label="上传多光谱图像")
                     sr_msi_id_show = gradio.Image(label='多光谱图像', show_label=True, visible=True)
-                    sr_msi_id_2 = gradio.Image(label='多光谱图像', show_label=True, image_mode='RGBA', visible=False)
+                    sr_msi_id_2 = gradio.File(visible=False)
                     sr_msi_upload.upload(util_common.upload_tif, sr_msi_upload, outputs=[sr_msi_id_show, sr_msi_id_2])
 
                 with gradio.Column():
                     sr_pan_upload = gradio.UploadButton(label="上传全色图像")
                     sr_pan_id_show = gradio.Image(label='全色图像', show_label=True, visible=True)
-                    sr_pan_id_2 = gradio.Image(label='全色图像', show_label=True, image_mode='RGBA', visible=False)
+                    sr_pan_id_2 = gradio.File(visible=False)
                     sr_pan_upload.upload(util_common.upload_tif, sr_pan_upload, outputs=[sr_pan_id_show, sr_pan_id_2])
                     
             with gradio.Row():
-                sr_res_id_2 = Image(show_label=True, label='超分结果')
+                sr_res_id_show = gradio.Image(show_label=True, label='超分结果')
+                sr_res_id_2 = gradio.File(label="超分结果", height=0.2, min_width=10, scale=0.2, interactive=False)
+                
             with gradio.Row():
                 with gradio.Tab('数据库'):
                     sr_data_blur_kernel_size = gradio.Slider(0, 31, step=1, label='模糊核尺寸')
@@ -138,14 +142,18 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
                                                              label='超分方法选择')
                         with gradio.Column():
                             sr_test_img_type = gradio.Dropdown(choices=['全色图像', '多光谱图像'], label='超分图像类型')
-                    sr_nn_ckpt_path = gradio.Text(lines=1, label='模型参数文件地址', show_copy_button=True)
+                    # sr_nn_ckpt_path = gradio.Text(lines=1, label='模型参数文件地址', show_copy_button=True)
+                    sr_nn_ckpt_path = gradio.File(height=10)
+                    upload_sr_ckpt_button = gradio.UploadButton("点击上传模型参数文件")
+                    upload_sr_ckpt_button.upload(fn=util_common.upload_ckpt, inputs=upload_sr_ckpt_button, outputs=sr_nn_ckpt_path)
+                    
                     sr_scale = gradio.Slider(minimum=1, maximum=4, step=1, label='超分倍数')
 
                     sr_button_test = gradio.Button('开始超分')
                     sr_button_test.click(fn=util_sr.sr_test_interface,
                                          inputs=[sr_msi_id_2, sr_pan_id_2, sr_test_method,
                                                  sr_test_img_type, sr_nn_ckpt_path, sr_scale],
-                                         outputs=[sr_res_id_2])
+                                         outputs=[sr_res_id_show, sr_res_id_2])
 
 
         with gradio.TabItem('数据定量分析', elem_id="function-tab-3"):
@@ -153,18 +161,18 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
                 with gradio.Column():
                     metric_msi_upload = gradio.UploadButton(label="上传多光谱（低分辨率）图像")
                     metric_msi_show = gradio.Image(label='多光谱（低分辨率）图像', show_label=True, visible=True)
-                    metric_msi_id_3 = gradio.Image(label='多光谱（低分辨率）图像', show_label=True, image_mode='RGBA', visible=False)
+                    metric_msi_id_3 = gradio.File(visible=False)
                     metric_msi_upload.upload(util_common.upload_tif, metric_msi_upload, outputs=[metric_msi_show, metric_msi_id_3])
                 with gradio.Column():
                     metric_pan_upload = gradio.UploadButton(label="上传全色（高分辨率）图像")
                     metric_pan_show = gradio.Image(label='全色（高分辨率）图像', show_label=True, visible=True)
-                    metric_pan_id_3 = gradio.Image(label='全色（高分辨率）图像', show_label=True, image_mode='RGBA', visible=False)
+                    metric_pan_id_3 = gradio.File(visible=False)
                     metric_pan_upload.upload(util_common.upload_tif, metric_pan_upload, outputs=[metric_pan_show, metric_pan_id_3])
                     
                 with gradio.Column():
                     metric_fusion_upload = gradio.UploadButton(label="上传融合图像")
                     metric_fusion_show = gradio.Image(label="融合图像", show_label=True, visible=True)
-                    metric_fusion_id_3 = gradio.Image(label='融合图像', show_label=True, image_mode='RGBA', visible=False)
+                    metric_fusion_id_3 = gradio.File(visible=False)
                     metric_fusion_upload.upload(util_common.upload_tif, metric_fusion_upload, outputs=[metric_fusion_show, metric_fusion_id_3])
                     
             with gradio.Row():

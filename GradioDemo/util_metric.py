@@ -8,6 +8,7 @@
 import random
 
 from method.metric import *
+from util_common import is_pan
 
    
 metrices = {
@@ -19,8 +20,17 @@ metrices = {
     'qnr': cal_qnr
 }
 
-def metric_interface(msi_lq, pan_hq, fusion, selected_metrics):
+
+def metric_interface(msi_lq_path, pan_hq_path, fusion_path, selected_metrics):
+    """
+    需要读取图像
+    """
+    msi_lq = np.random.randn(128, 128, 3)
+    pan_hq = np.random.randn(128, 128, 3)
+    fusion = np.random.randn(128, 128, 3)
+    
     print(msi_lq.shape, pan_hq.shape)
+    
     results = []
     for metric in selected_metrics:
         if metric.lower() == 'qnr':

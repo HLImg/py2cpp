@@ -9,6 +9,8 @@ import cv2 as cv
 import numpy as np
 import util_common
 
+from method.super_resolution.sr_main import SR_Inference
+
 def sr_generate_image(msi, pan, kernel_size, kernel_std, noise, jpeg, output_path, progress=gradio.Progress()):
     print(msi.shape)
     print(pan.shape)
@@ -44,10 +46,14 @@ def sr_train(msi, pan, method, img_type, lr, save_freq, save_dir, progress=gradi
         time.sleep(1)
 
 def sr_test_interface(msi, pan, method, img_type, ckpt_path, sr_scale):
+    
     if img_type == '全色图像':
-        lq = pan
+        lq_path = msi
+        img_type = "pan"
     elif img_type == '多光谱图像':
-        lq = msi
+        lq_path = msi
+        img_type = "msi"
+    
     
     if method == '卷积神经网络':
         use_method = 'cnn'
@@ -58,7 +64,15 @@ def sr_test_interface(msi, pan, method, img_type, ckpt_path, sr_scale):
     
     sr_scale = int(sr_scale)
     
-    return lq[::2, ::2, :3]
+    # sr_inference = SR_Inference(lq_path, use_method, img_type, 
+    #                             ckpt_path, sr_scale)
+    
+    lq = util_common.gdal_read(lq_path)
+    lq = np.transpose(lq, (1, 2, 0))
+    print("#####################  ", lq_path)
+    print("#####################  ", np.mean(lq))
+    res = lq[::2, ::2, :3] if img_type == "msi" else lq[::2, ::2]
+    return res / res.max(), util_common.download_tif(lq)
     
     
 
