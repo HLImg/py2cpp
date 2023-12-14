@@ -78,13 +78,13 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
                     sr_msi_upload = gradio.UploadButton(label="上传多光谱图像")
                     sr_msi_id_show = gradio.Image(label='多光谱图像', show_label=True, visible=True)
                     sr_msi_id_2 = gradio.Image(label='多光谱图像', show_label=True, image_mode='RGBA', visible=False)
-                    sr_msi_upload.upload(util_common.upload_msi, sr_msi_upload, outputs=[sr_msi_id_show, sr_msi_id_2])
+                    sr_msi_upload.upload(util_common.upload_tif, sr_msi_upload, outputs=[sr_msi_id_show, sr_msi_id_2])
 
-                
                 with gradio.Column():
                     sr_pan_upload = gradio.UploadButton(label="上传全色图像")
-                    sr_pan_id_2 = gradio.Image(label='全色图像', show_label=True, visible=True)
-                    sr_pan_upload.upload(util_common.upload_pan, sr_pan_upload, sr_pan_id_2)
+                    sr_pan_id_show = gradio.Image(label='全色图像', show_label=True, visible=True)
+                    sr_pan_id_2 = gradio.Image(label='全色图像', show_label=True, image_mode='RGBA', visible=False)
+                    sr_pan_upload.upload(util_common.upload_tif, sr_pan_upload, outputs=[sr_pan_id_show, sr_pan_id_2])
                     
             with gradio.Row():
                 sr_res_id_2 = Image(show_label=True, label='超分结果')
@@ -150,8 +150,23 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
 
         with gradio.TabItem('数据定量分析', elem_id="function-tab-3"):
             with gradio.Row():
-                metric_lq_id_3 = gradio.Image(sources='upload', label='待分析图像', show_label=True)
-                metric_gt_id_3 = gradio.Image(sources='upload', label='真值图像', show_label=True)
+                with gradio.Column():
+                    metric_msi_upload = gradio.UploadButton(label="上传多光谱（低分辨率）图像")
+                    metric_msi_show = gradio.Image(label='多光谱（低分辨率）图像', show_label=True, visible=True)
+                    metric_msi_id_3 = gradio.Image(label='多光谱（低分辨率）图像', show_label=True, image_mode='RGBA', visible=False)
+                    metric_msi_upload.upload(util_common.upload_tif, metric_msi_upload, outputs=[metric_msi_show, metric_msi_id_3])
+                with gradio.Column():
+                    metric_pan_upload = gradio.UploadButton(label="上传全色（高分辨率）图像")
+                    metric_pan_show = gradio.Image(label='全色（高分辨率）图像', show_label=True, visible=True)
+                    metric_pan_id_3 = gradio.Image(label='全色（高分辨率）图像', show_label=True, image_mode='RGBA', visible=False)
+                    metric_pan_upload.upload(util_common.upload_tif, metric_pan_upload, outputs=[metric_pan_show, metric_pan_id_3])
+                    
+                with gradio.Column():
+                    metric_fusion_upload = gradio.UploadButton(label="上传融合图像")
+                    metric_fusion_show = gradio.Image(label="融合图像", show_label=True, visible=True)
+                    metric_fusion_id_3 = gradio.Image(label='融合图像', show_label=True, image_mode='RGBA', visible=False)
+                    metric_fusion_upload.upload(util_common.upload_tif, metric_fusion_upload, outputs=[metric_fusion_show, metric_fusion_id_3])
+                    
             with gradio.Row():
                 with gradio.Column():
                     metric_inp = gradio.CheckboxGroup(["PSNR", "RMSE", "SSIM", 
@@ -164,7 +179,7 @@ with gradio.Blocks(title='图像处理', theme=theme, css=css_file) as demo:
                                                    datatype=["str", "str"], 
                                                    interactive=False, wrap=True)
                 
-                metric_button.click(util_metric.metric_interface, inputs=[metric_lq_id_3, metric_gt_id_3, metric_inp], outputs=metric_out)
+                metric_button.click(util_metric.metric_interface, inputs=[metric_msi_id_3, metric_pan_id_3, metric_fusion_id_3,metric_inp], outputs=metric_out)
         with gradio.TabItem('关于', elem_id="function-tab-4"):
             gradio.Markdown('## 介绍')
 

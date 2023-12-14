@@ -43,9 +43,27 @@ def upload_msi(files):
     img = gdal_read(files)
     img = np.transpose(img, (1, 2, 0))
     img = img / img.max()
+    
+    
+    
     return img[:, :, :3], img
 
 def upload_pan(files):
     img = gdal_read(files)
     img = img / img.max()
     return img
+
+
+def upload_tif(files):
+    img = gdal_read(files)
+    
+    if len(img.shape) == 3:
+        img = np.transpose(img, (1, 2, 0))
+    else:
+        img = np.repeat(img[:, :, np.newaxis], 4, axis=2)
+        
+    show_img = img.copy()
+    show_img = show_img[:, :, :3]
+    show_img = show_img / show_img.max()
+    
+    return show_img, img

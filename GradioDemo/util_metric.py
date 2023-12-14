@@ -15,14 +15,17 @@ metrices = {
     'ssim': cal_ssim,
     'rmse': cal_rmse,
     'ergas': cal_ergas,
-    'avg_grad': cal_avg_grad
+    'avg_grad': cal_avg_grad,
+    'qnr': cal_qnr
 }
 
-def metric_interface(im_lq, im_gt, selected_metrics):
+def metric_interface(msi_lq, pan_hq, fusion, selected_metrics):
+    print(msi_lq.shape, pan_hq.shape)
     results = []
-    
     for metric in selected_metrics:
-        metric_res = metrices[metric.lower()](im_lq, im_gt)
+        if metric.lower() == 'qnr':
+            metric_res = metrices[metric.lower()](msi_lq, pan_hq, fusion)
+        else:
+            metric_res = metrices[metric.lower()](msi_lq, pan_hq)
         results.append([metric, metric_res])
-    
     return results
